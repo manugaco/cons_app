@@ -24,8 +24,9 @@ services:
       dockerfile: dockerfile
     container_name: db_creation
     volumes:
-      - ./../Context/data/:/src/app/data
-      - ./../Context/config/:/src/app/config/db_creation
+      - ./../../../../Context/SMI/data/:/src/app/data
+      - ./../../../../Context/SMI/config/:/src/app/config
+      - ./../../../../Context/SMI/logs/:/src/app/logs/db_creation
     networks:
       - smi_net
       

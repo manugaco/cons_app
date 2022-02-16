@@ -40,7 +40,7 @@ initial_users_table = app_config['initial_users_table']
 users_table = app_config['users_table']
 app_name = app_config['app_name']
 
-## Check directories:
+## Check and create directories:
 
 if not os.path.isdir(logs_path):
     os.makedirs(logs_path)
