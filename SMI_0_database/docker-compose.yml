@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: g9uSML4IPYlFDx4WW/Yo0RDVeVbDbhdAPSXRGBHicyQ=
       POSTGRES_DB: smi_data
     volumes:
-      - ./db_data:/var/lib/postgresql/data
+      - ./../../../context/SMI/db_data:/var/lib/postgresql/data:rw
     networks:
       - smi_net
 
@@ -24,9 +24,9 @@ services:
       dockerfile: dockerfile
     container_name: db_creation
     volumes:
-      - ./../../../../Context/SMI/data/:/src/app/data
-      - ./../../../../Context/SMI/config/:/src/app/config
-      - ./../../../../Context/SMI/logs/:/src/app/logs/db_creation
+      - ./../../../context/SMI/data/:/home/app/data:rw
+      - ./../../../context/SMI/config/:/home/app/config:rw
+      - ./../../../context/SMI/logs/:/home/app/logs/db_creation:rw
     networks:
       - smi_net
       

@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
 FROM python:3.8.10
-COPY requirements.txt opt/
+COPY requirements.txt home/app/db_creation/
 RUN pip install lxml
-RUN pip install -r opt/requirements.txt
-COPY build/ /src/app/db_creation/
-WORKDIR /src/app/db_creation/
+RUN pip install -r home/app/db_creation/requirements.txt
+COPY build/ /home/app/db_creation/
+WORKDIR /home/app/db_creation/
 CMD ["python3", "db_creation.py"]

@@ -377,7 +377,7 @@ class DatabaseCreation:
             df = self.get_tw_users_list()
             self.api_logger.info('Scraping job: Initial users from url retrieved.')
             self.api_logger.info('Scraping job: Save initial users to json backup.')
-            df.to_json(temp_data_path + 'db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
+            df.to_json(temp_data_path + 'get_users/db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
             self.df_to_postgres(df, self.initial_users_table)
             self.api_logger.info('Database job: Initial users table created on DB.')
 
@@ -392,7 +392,7 @@ class DatabaseCreation:
         try:
 
             db_ini_ls = self.fetchall_SQL(self.queries_path + 'SMI_ini_database_screenName.sql')
-            path_ini = temp_data_path + 'db_ini_users_' + db_ini_users_bkp + '.json'
+            path_ini = temp_data_path + 'get_users/db_ini_users_' + db_ini_users_bkp + '.json'
             df_ini_users, df_ini_ls, df_ini_user_check = self.backup_check(path_ini, db_munlist, kind = 'initial users')
 
             if df_ini_user_check:
@@ -433,7 +433,7 @@ class DatabaseCreation:
         '''
         try:
             db_usr_ls = self.fetchall_SQL(self.queries_path + 'SMI_usrs_database_screenName.sql')
-            path_usr = temp_data_path + 'db_users_' + db_users_bkp + '.json'
+            path_usr = temp_data_path + 'get_users/db_users_' + db_users_bkp + '.json'
             df_usr, df_usr_ls, df_usr_check = self.backup_check(path_usr, db_munlist, kind = 'users')
 
             if df_usr_check:

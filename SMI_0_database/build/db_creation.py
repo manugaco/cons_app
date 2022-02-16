@@ -9,7 +9,7 @@ from utils import *
 
 ## GLOBAL Params:
 
-with open('../config/global.config') as config_file:
+with open('../config/global.json') as config_file:
     gb_config = json.load(config_file)
 
 headers = gb_config['headers']
@@ -70,7 +70,7 @@ try:
 
     # Get db config:
     
-    with open(config_path + 'db.config') as f:
+    with open(config_path + 'postgres.config') as f:
         db_config = json.load(f)
     
     schema = db_config['db_schema']
