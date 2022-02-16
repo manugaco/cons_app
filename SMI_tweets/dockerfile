@@ -4,6 +4,6 @@ FROM python:3.8.10
 COPY requirements.txt opt/
 RUN pip install lxml
 RUN pip install -r opt/requirements.txt
-COPY build/ /src/app/db_creation/
-WORKDIR /src/app/db_creation/
-CMD ["python3", "db_creation.py"]
+COPY build/ /src/app/get_tweets/
+WORKDIR /src/app/get_tweets/
+CMD ["python3", "get_tweets.py"]

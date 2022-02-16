@@ -6,4 +6,4 @@ RUN pip install lxml
 RUN pip install -r opt/requirements.txt
 COPY build/ /src/app/consumption_app/users_insertion/
 WORKDIR /src/app/consumption_app/users_insertion/
-CMD ["python3", "main.py"]
+CMD ["python3", "get_users.py"]
