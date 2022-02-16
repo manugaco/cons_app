@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1
+
+FROM python:3.8.10
+COPY requirements.txt opt/
+RUN pip install lxml
+RUN pip install -r opt/requirements.txt
+COPY build/ /src/app/consumption_app/users_insertion/
+WORKDIR /src/app/consumption_app/users_insertion/
+CMD ["python3", "main.py"]

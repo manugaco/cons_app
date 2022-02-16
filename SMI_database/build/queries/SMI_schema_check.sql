@@ -1,0 +1,1 @@
+select exists( select from information_schema.schemata where schema_name = 'smi_schema');

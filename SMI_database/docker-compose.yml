@@ -1,0 +1,35 @@
+version: '3'
+services:
+
+  smi_database:
+    hostname: smi_database
+    image: postgres:14-alpine
+    healthcheck:
+      test: psql postgres --command "select 1" -U smi_majogar
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: smi_majogar
+      POSTGRES_PASSWORD: g9uSML4IPYlFDx4WW/Yo0RDVeVbDbhdAPSXRGBHicyQ=
+      POSTGRES_DB: smi_data
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    networks:
+      - smi_net
+
+  db_creation:
+    hostname: db_creation
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: db_creation
+    volumes:
+      - ./../Context/data/:/src/app/data
+      - ./../Context/config/:/src/app/config/db_creation
+    networks:
+      - smi_net
+      
+networks:
+  smi_net:
+    driver: bridge
+    external: true
