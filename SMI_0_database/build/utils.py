@@ -239,6 +239,27 @@ class DatabaseCreation:
         except Exception as error:
             self.api_logger.exception(error)
 
+    def treat_corpus(self, df):
+        '''
+        Function to treat the corpus columns:
+        params:
+            - df: dataframe to treat.
+        Output: Dataframe treated.
+        '''
+        try:
+            #Columns treatment:
+            df['date'] = pd.to_datetime(df['date'])
+            df['content'] = df['content'].replace(',','', regex=True)
+            df['content'] = df['content'].replace('"','', regex=True)
+            df['content'] = df['content'].replace(r'\\',' ', regex=True)
+            df['content'] = df['content'].replace(r'\r+|\n+|\t+','', regex=True)
+            df['content']= df['content'].replace('[^a-zA-Z0-9]', '')
+            df['sentiment'] = df['sentiment'].replace(',','', regex=True)
+            return(df)
+
+        except Exception as error:
+            self.api_logger.exception(error)
+
     def fetchone_SQL(self, path):
         """
         Function to fetch one observation from a query to database:
@@ -478,15 +499,20 @@ class DatabaseCreation:
         except Exception as error:
                 self.api_logger.exception(error)
 
-    def insert_corpus(self, temp_data_path, db_munlist):
+    def insert_corpus(self, temp_data_path):
         '''
-        Function to insert users backup into DB.
+        Function to insert corpus into DB.
         params: self referenced, no params.
         '''
         try:
             path_corpus = temp_data_path + 'train_model/TASScorpus.json'
             with open(path_corpus, 'r') as f:
+                self.api_logger.info('Data job: Retrieve corpus file.')
                 df = pd.json_normalize(json.load(f))
+                self.api_logger.info('Data job: Corpus length: ' + str(df.shape[0]) + ' observations')
+                df.drop_duplicates(inplace = True)
+                self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations')
+                df = self.treat_corpus(df)
                 self.api_logger.info('Database job: Insert corpus into DB.')
                 self.df_to_postgres(df, self.corpus_table)
                 self.api_logger.info('Database job: Corpus inserted into DB.')

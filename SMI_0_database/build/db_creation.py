@@ -112,7 +112,7 @@ try:
     dbcreate.insert_users(temp_data_path, db_users_bkp, db_munlist)
 
     ## Corpus:
-    dbcreate.insert_corpus(temp_data_path, db_munlist)
+    dbcreate.insert_corpus(temp_data_path)
 
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)

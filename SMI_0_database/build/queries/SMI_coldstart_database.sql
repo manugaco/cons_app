@@ -41,7 +41,7 @@ create table smi_schema.smi_corpus (
     "tweetid" varchar(255) NOT NULL,
     "user" varchar(255) NOT NULL,
     "content" varchar(255),
-    "date" timestamp,
+    "date" varchar(255),
     "lang" varchar(255),
     "sentiment" varchar(255)
 );
