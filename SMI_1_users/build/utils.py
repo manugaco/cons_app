@@ -284,8 +284,14 @@ class UsersPipeline:
         '''
         try:
 
-            df.to_csv(self.temp_data_path + 'get_users/db_users_' + str(dt.today().strftime("%Y-%m-%d")) + '.json')
-        
+            (df.to_json(self.temp_data_path + 
+            'get_users/db_users_' + 
+            str(dt.today().strftime("%Y-%m-%d")) + 
+            '.json', 
+            orient='records', 
+            date_format='iso')
+            )
+            
         except Exception as error:
             self.api_logger.exception(error)
 

@@ -42,7 +42,6 @@ create table smi_schema.smi_corpus (
     "user" varchar(255) NOT NULL,
     "content" varchar(255),
     "date" timestamp,
-    "protected" boolean,
     "lang" varchar(255),
     "sentiment" varchar(255)
 );

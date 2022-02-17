@@ -38,6 +38,7 @@ db_today = str(dt.today().strftime("%Y-%m-%d"))
 # Names:
 initial_users_table = app_config['initial_users_table']
 users_table = app_config['users_table']
+corpus_table = app_config['corpus_table']
 app_name = app_config['app_name']
 
 ## Check and create directories:
@@ -93,7 +94,8 @@ try:
     #Create class instance:
     dbcreate = DatabaseCreation(queries_path, conn, schema, 
                                 api_logger, urls, headers, 
-                                ini_users_dict, initial_users_table, users_table)
+                                ini_users_dict, initial_users_table, 
+                                users_table, corpus_table)
 
     ## Check schema and tables:
     dbcreate.db_cs()
@@ -108,6 +110,9 @@ try:
 
     ## Users:
     dbcreate.insert_users(temp_data_path, db_users_bkp, db_munlist)
+
+    ## Corpus:
+    dbcreate.insert_corpus(temp_data_path, db_munlist)
 
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)

@@ -22,8 +22,10 @@ class DatabaseCreation:
                 headers,
                 ini_users_dict,
                 initial_users_table,
-                users_table
+                users_table,
+                corpus_table
                 ):
+
         #Local parameters
         self.queries_path = queries_path
         self.conn = conn
@@ -36,6 +38,7 @@ class DatabaseCreation:
         self.ini_users_dict = ini_users_dict
         self.initial_users_table = initial_users_table
         self.users_table = users_table
+        self.corpus_table = corpus_table
 
     def get_info(self, url, header):
         '''
@@ -209,15 +212,19 @@ class DatabaseCreation:
             if os.path.isfile(path):
 
                 self.api_logger.info('Data job: ' + kind + ' backup exists. Loading file: ' + path)
+
                 with open(path, 'r') as f:
 
                     df = pd.json_normalize(json.load(f))
+
                     if kind == 'users':
+                        
                         self.api_logger.info('Data Engineering job: Filtering location from backup users.')
                         self.api_logger.info('Data Engineering job: Observations before filter: ' + str(df.shape[0]))
                         df = self.filter_usrs_loc(df, db_munlist)
                         df['ff_lookup'] = False
                         self.api_logger.info('Data Engineering job: Observations after filter: ' + str(df.shape[0]))
+
                     usr_ls = df['screenName'].to_list()
                     check = True
                     self.api_logger.info('Data job: ' + kind + ' backup from json file retrieved.')
@@ -467,6 +474,22 @@ class DatabaseCreation:
                 self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
                 n_obs = self.fetchone_SQL(self.queries_path + 'SMI_usrs_count_users.sql')
                 self.api_logger.info('Database job: Number of observations on the users table after droping duplicates: ' + str(n_obs))
+
+        except Exception as error:
+                self.api_logger.exception(error)
+
+    def insert_corpus(self, temp_data_path, db_munlist):
+        '''
+        Function to insert users backup into DB.
+        params: self referenced, no params.
+        '''
+        try:
+            path_corpus = temp_data_path + 'train_model/TASScorpus.json'
+            with open(path_corpus, 'r') as f:
+                df = pd.json_normalize(json.load(f))
+                self.api_logger.info('Database job: Insert corpus into DB.')
+                self.df_to_postgres(df, self.corpus_table)
+                self.api_logger.info('Database job: Corpus inserted into DB.')
 
         except Exception as error:
                 self.api_logger.exception(error)
