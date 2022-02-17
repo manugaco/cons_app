@@ -11,17 +11,27 @@ This app has the aim of deploying the social media consumption index into a serv
 
 ### SMI_0_database folder:
 
- Docker container service that mounts and fills a postgres database.
+Docker container service that mounts and fills a postgres database.
+It creates all the database structure, schema, tables and variables.
 
-  - It creates all the database structure, schema, tables and variables.
-  - It fills each table with information:
-    - Initial users table: It will be filled whether the user has a backup or not, in the last case, the initial users are retrieved from a web url (it can also be customized).
-    - Users table: It will be filled if and only if a backup is available.
-    - Municipalities: In order to filter the origin of the users via location, a list of municipalities (or any state decomposition) must be provided.
-    - Corpus: In order to train a supervised model to classify future tweets, a labeled corpus linguistic must be provided.
-    - Tweets: It will be filled if and only if a backup is available.
+More explanation about the process is explained in the readme of the SMI_0_database folder.
 
 ### SMI_1_users folder:
 
+Docker container service that retrieves friends and followers from a users list.
+Given a user list, it retrieves all its friends and followers and it stores them in the database.
 
+### SMI_3_tweets folder:
+
+Docker container service that retrieves all the tweets from a user list.
+Given a period range, it retrieves all the tweets and stores them in the database.
+
+### SMI_4_model folder:
+
+Docker container service to train a classification supervised model.
+Given a labeled dataset, it executes a machine learning modelling pipeline.
+
+### SMI_5_visual folder:
+
+(to think about...)
  
