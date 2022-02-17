@@ -1,8 +1,8 @@
 -- Script that creates the database schemas and tables:
 
-drop table if exists smi_schema.smi_users_table;
+drop table if exists smi_schema.smi_users;
 
-create table smi_schema.smi_users_table (
+create table smi_schema.smi_users (
     "id" varchar(255) NOT NULL,
     "screenName" varchar(255) NOT NULL,
     "followersCount" numeric,

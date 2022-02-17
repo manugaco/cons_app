@@ -1,5 +1,5 @@
 create schema smi_schema;
-create table smi_schema.smi_initial_users_table (
+create table smi_schema.smi_initial_users (
 	
     "screenName" varchar(255) NOT NULL,
     "followersCount" numeric,
@@ -11,7 +11,7 @@ create table smi_schema.smi_initial_users_table (
 
 );
 
-create table smi_schema.smi_users_table (
+create table smi_schema.smi_users (
     "id" varchar(255) NOT NULL,
     "screenName" varchar(255) NOT NULL,
     "followersCount" numeric,

@@ -1,1 +1,1 @@
-select su."screenName" from smi_schema.smi_users_table su;
+select su."screenName" from smi_schema.smi_users su;
