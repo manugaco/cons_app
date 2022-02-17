@@ -18,7 +18,7 @@ from utils import *
 
 # GLOBAL Params:
 
-with open('../config/global.config') as config_file:
+with open('../config/global.json') as config_file:
     gb_config = json.load(config_file)
 
 ini_users_dict = gb_config['ini_users_dict']
@@ -27,7 +27,7 @@ tw_acc = gb_config['tw_acc']
 
 # APP Params:
 
-with open('../config/app.config') as config_file:
+with open('../config/get_users.config') as config_file:
     app_config = json.load(config_file)
 
 queries_path = app_config['queries_path']
@@ -74,7 +74,7 @@ logging.basicConfig(
 
 # Get db config:
 
-with open('../config/db.config') as config_file:
+with open('../config/postgres.config') as config_file:
     db_config = json.load(config_file)
 
 # Local database deployment
@@ -109,7 +109,7 @@ else:
     users_ls = db_users["screenName"].to_list()
 
 # Get munlist:
-with open(temp_data_path + 'db_munlist.json') as config_file:
+with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
     db_munlist = json.load(config_file)
 
 #Instancialize users pipeline class:

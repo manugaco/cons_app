@@ -1,5 +1,5 @@
 select *
-from {schema}.smi_users_table sut
+from {schema}.smi_users sut
 where sut."followersCount" < 20
 AND sut."followersCount" > 10
 AND sut."friendsCount" < 20

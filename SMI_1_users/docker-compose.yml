@@ -8,9 +8,9 @@ services:
       dockerfile: dockerfile
     container_name: users_insertion
     volumes:
-      - ./data/:/src/app/consumption_app/data
-      - ./config/:/src/app/consumption_app/config
-      - ./logs/:/src/app/consumption_app/logs
+      - ./../../../context/SMI/data/:/home/app/data:rw
+      - ./../../../context/SMI/config/:/home/app/config:rw
+      - ./../../../context/SMI/logs/:/home/app/logs/users_insertion:rw
     networks:
       - smi_net
 

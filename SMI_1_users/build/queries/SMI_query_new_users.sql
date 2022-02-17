@@ -1,2 +1,2 @@
 select *
-from {schema}.smi_users_table sut;
+from {schema}.smi_users sut;

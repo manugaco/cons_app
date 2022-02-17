@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
 FROM python:3.8.10
-COPY requirements.txt opt/
+COPY requirements.txt home/app/users_insertion/
 RUN pip install lxml
-RUN pip install -r opt/requirements.txt
-COPY build/ /src/app/consumption_app/users_insertion/
-WORKDIR /src/app/consumption_app/users_insertion/
+RUN pip install -r home/app/users_insertion/requirements.txt
+COPY build/ /home/app/users_insertion/
+WORKDIR /home/app/users_insertion/
 CMD ["python3", "get_users.py"]
