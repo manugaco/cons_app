@@ -452,15 +452,16 @@ class DatabaseCreation:
                     if df_usr_ls == db_usr_ls:
                         self.api_logger.info('Data job: Users match.')
                     else:
-                        self.api_logger.info('Database job: Users do not match, drop and create users table.')
-                        #Create initial users table:
-                        self.api_logger.info('Database job: Creating users table on DB.')
-                        self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
+                        self.api_logger.info('Database job: Users do not match.')
+                        if len(df_usr_ls) > len(db_usr_ls):
+                            #Create initial users table:
+                            self.api_logger.info('Database job: Creating users table on DB.')
+                            self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
                         
-                        #Initial users table insertion:
-                        self.api_logger.info('Database job: Users back into DB.')
-                        self.df_to_postgres(df_usr, self.users_table)
-                        self.api_logger.info('Database job: Users table inserted on DB.')
+                            #Initial users table insertion:
+                            self.api_logger.info('Database job: Users back into DB.')
+                            self.df_to_postgres(df_usr, self.users_table)
+                            self.api_logger.info('Database job: Users table inserted on DB.')
 
                 self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
                 self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
