@@ -21,17 +21,17 @@ More explanation about the process is explained in the readme of the SMI_0_datab
 Docker container service that retrieves friends and followers from a users list.
 Given a user list, it retrieves all its friends and followers and it stores them in the database.
 
-### SMI_3_tweets folder:
+### SMI_2_tweets folder:
 
 Docker container service that retrieves all the tweets from a user list.
 Given a period range, it retrieves all the tweets and stores them in the database.
 
-### SMI_4_model folder:
+### SMI_3_model folder:
 
 Docker container service to train a classification supervised model.
 Given a labeled dataset, it executes a machine learning modelling pipeline.
 
-### SMI_5_visual folder:
+### SMI_4_visual folder:
 
 (to think about...)
  
