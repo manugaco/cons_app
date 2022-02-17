@@ -1,15 +1,15 @@
-## cons_app
+# Consumption app (cons_app):
 
-This app has the aim of deploy the social media consumption index into a server and visualize it.
+This app has the aim of deploying the social media consumption index into a server and visualize it.
 
-###Technologies used:
+## Technologies used:
 
  - Python and postgresSQL.
  - Docker.
 
-###Repository structure:
+## Repository structure:
 
-* SMI_0_database folder:
+### SMI_0_database folder:
 
  Docker container service that mounts and fills a postgres database.
 
@@ -21,8 +21,7 @@ This app has the aim of deploy the social media consumption index into a server 
     - Corpus: In order to train a supervised model to classify future tweets, a labeled corpus linguistic must be provided.
     - Tweets: It will be filled if and only if a backup is available.
 
-* SMI_1_users folder:
+### SMI_1_users folder:
 
 
-
-It is implemented by using python and postgresSQL for coding 
+ 
