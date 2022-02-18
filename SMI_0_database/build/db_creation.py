@@ -98,7 +98,7 @@ try:
                                 users_table, corpus_table)
 
     ## Check schema and tables:
-    dbcreate.db_cs()
+    dbcreate.db_init()
 
     #Get municipalities list:
     with open(temp_data_path + db_munlist_bkp) as f:

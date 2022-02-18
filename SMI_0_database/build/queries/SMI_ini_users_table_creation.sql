@@ -13,4 +13,3 @@ create table smi_schema.smi_initial_users (
     "category" varchar(255)
 
 );
-

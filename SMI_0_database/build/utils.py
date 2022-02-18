@@ -32,6 +32,7 @@ class DatabaseCreation:
         self.cur = conn.cursor()
         self.schema = schema
         self.api_logger = api_logger
+
         #Global parameters
         self.url = urls
         self.header = headers
@@ -382,7 +383,7 @@ class DatabaseCreation:
 
         cur.close()
 
-    def db_cs(self):
+    def db_init(self):
         '''
         Function to check and create the database schema and tables.
         params: selft referenced, no params.
@@ -472,10 +473,15 @@ class DatabaseCreation:
             self.api_logger.info('Scraping job: Retrieve initial users from url.')
             df = self.get_tw_users_list()
             self.api_logger.info('Scraping job: Initial users from url retrieved.')
+            
+            # Save initial users to backup:
             self.api_logger.info('Scraping job: Save initial users to json backup.')
             df.to_json(temp_data_path + 'get_users/db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
+            
+            # Store initial users on DB:
+            self.api_logger.info('Database job: Insert initial users on DB.')
             self.df_to_postgres(df, self.initial_users_table)
-            self.api_logger.info('Database job: Initial users table created on DB.')
+            self.api_logger.info('Database job: Initial users inserted on DB.')
 
         except Exception as error:
 
@@ -487,45 +493,18 @@ class DatabaseCreation:
         params: self referenced, no params.
         '''
         try:
-
-            self.api_logger.info('Database job: Get initial users table screenName.')
-            db_ini_ls = self.fetchall_SQL(self.queries_path + 'SMI_ini_database_screenName.sql')
-            self.api_logger.info('Data job: Check initial users backup screenName.')
-            path_ini = temp_data_path + 'get_users/db_ini_users_' + db_ini_users_bkp + '.json'
-            df_ini_users, df_ini_ls, df_ini_user_check = self.backup_check(path_ini, db_munlist, kind = 'initial users')
-
-            if df_ini_user_check:
-                
-                if (len(db_ini_ls) == 0):
-
-                    self.api_logger.info('Database job: Initial users table is empty.')
-                    self.api_logger.info('Database job: Insert initial users backup into DB.')
-                    self.df_to_postgres(df_ini_users, self.initial_users_table)
-                else:
-
-                    self.api_logger.info('Database job: Initial users table is not empty.')
-                    self.api_logger.info('Data job: Compare initial users on DB and backup.')
-
-                    df_ini_ls.sort()
-                    db_ini_ls.sort()
-                    
-                    if df_ini_ls == db_ini_ls:
-
-                        self.api_logger.info('Data job: initial users match.')
-                    else:
-
-                        self.api_logger.info('Database job: initial users do not match, drop and create initial users table.')
-                        #Create initial users table:
-                        self.api_logger.info('Database job: Creating initial users table on DB.')
-                        self.query_SQL(self.queries_path + 'SMI_ini_users_table_creation.sql')
-                        
-                        #Initial users table insertion:
-                        self.api_logger.info('Database job: Insert initial users back into DB.')
-                        self.df_to_postgres(df_ini_users, self.initial_users_table)
-                        self.api_logger.info('Database job: Initial users table inserted on DB.')
-            else:
+            
+            self.api_logger.info('Data job: Get number of observation of initial users table.')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_ini_users.sql')
+            self.api_logger.info('Data job: Number of observation of initial users table: ' + str(n_obs))
+            
+            if n_obs == 0:
 
                 self.scrap_users(temp_data_path, db_today)
+
+            else:
+                
+                self.api_logger.info('Database job: Initial users table is not empty. Total number of users: ' + str(n_obs))
 
         except Exception as error:
 
@@ -579,7 +558,7 @@ class DatabaseCreation:
 
                 self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
                 self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
-                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_usrs_count_users.sql')
+                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
                 self.api_logger.info('Database job: Number of observations on the users table after droping duplicates: ' + str(n_obs))
 
         except Exception as error:
@@ -593,18 +572,18 @@ class DatabaseCreation:
         '''
         try:
 
-            self.api_logger.info('Database job: Get number of observation on corpus table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_usrs_count_corpus.sql')
+            self.api_logger.info('Database job: Get number of observation of corpus table.')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_corpus.sql')
             self.api_logger.info('Database job: Number of observation on corpus table: ' + str(n_obs))
 
             if n_obs == 0:
-                
+
                 path_corpus = temp_data_path + 'train_model/TASScorpus.json'
                 with open(path_corpus, 'r') as f:
 
                     self.api_logger.info('Data job: Retrieve corpus file.')
                     df = pd.json_normalize(json.load(f))
-                    self.api_logger.info('Data job: Corpus length: ' + str(df.shape[0]) + ' observations.')
+                    self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
                     df = self.treat_corpus(df)
@@ -618,5 +597,40 @@ class DatabaseCreation:
 
         except Exception as error:
 
-            self.api_logger.info('Data job: Corpus file not found, please provide corpus file.')
+            self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
+            self.api_logger.exception(error)
+
+    def insert_munlist(self, temp_data_path):
+        '''
+        Function to insert corpus into DB.
+        params: self referenced, no params.
+        '''
+        try:
+
+            self.api_logger.info('Database job: Get number of observation of corpus table.')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_corpus.sql')
+            self.api_logger.info('Database job: Number of observation on corpus table: ' + str(n_obs))
+
+            if n_obs == 0:
+
+                path_corpus = temp_data_path + 'municipalities/munlist.json'
+                with open(path_corpus, 'r') as f:
+
+                    self.api_logger.info('Data job: Retrieve municipalities file.')
+                    df = pd.json_normalize(json.load(f))
+                    self.api_logger.info('Data job: Municipalities number of observations: ' + str(df.shape[0]) + ' observations.')
+                    df.drop_duplicates(inplace = True)
+                    self.api_logger.info('Data job: Drop duplicates of unicipalities: ' + str(df.shape[0]) + ' observations.')
+                    df = self.treat_corpus(df)
+                    self.api_logger.info('Database job: Insert corpus into DB.')
+                    self.df_to_postgres(df, self.corpus_table)
+                    self.api_logger.info('Database job: Corpus inserted into DB.')
+            
+            else:
+
+                self.api_logger.info('Database job: Corpus table already filled.')
+
+        except Exception as error:
+
+            self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
             self.api_logger.exception(error)
