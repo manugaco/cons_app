@@ -6,6 +6,7 @@ This app has the aim of deploying the social media consumption index into a serv
 
  - Python and postgresSQL.
  - Docker.
+ - json backups format.
 
 ## Repository structure:
 
