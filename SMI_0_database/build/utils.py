@@ -23,7 +23,8 @@ class DatabaseCreation:
                 ini_users_dict,
                 initial_users_table,
                 users_table,
-                corpus_table
+                corpus_table,
+                munlist_table
                 ):
 
         #Local parameters
@@ -40,6 +41,7 @@ class DatabaseCreation:
         self.initial_users_table = initial_users_table
         self.users_table = users_table
         self.corpus_table = corpus_table
+        self.munlist_table = munlist_table
 
     def get_info(self, url, header):
         '''
@@ -487,6 +489,42 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
+    def insert_munlist(self, temp_data_path):
+        '''
+        Function to insert municipalities into DB.
+        params: self referenced, no params.
+        '''
+        try:
+
+            self.api_logger.info('Database job: Get number of observation of municipalities table.')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_municipalities.sql')
+            self.api_logger.info('Database job: Number of observation on municipalities table: ' + str(n_obs))
+
+            if n_obs == 0:
+
+                path_munlist = temp_data_path + 'municipalities/munlist.json'
+
+                with open(path_munlist, 'r') as f:
+
+                    self.api_logger.info('Data job: Retrieve municipalities file.')
+                    df = pd.DataFrame(json.load(f), columns=['location'])
+                    df['location'] = df['location'].replace(',','', regex=True)
+                    self.api_logger.info('Data job: Municipalities number of observations: ' + str(df.shape[0]) + ' observations.')
+                    df.drop_duplicates(inplace = True)
+                    self.api_logger.info('Data job: Drop duplicates of unicipalities: ' + str(df.shape[0]) + ' observations.')
+                    self.api_logger.info('Database job: Insert municipalities into DB.')
+                    self.df_to_postgres(df, self.munlist_table)
+                    self.api_logger.info('Database job: Municipalities inserted into DB.')
+            
+            else:
+
+                self.api_logger.info('Database job: Municipalities table already filled.')
+
+        except Exception as error:
+
+            self.api_logger.info('Data job: Municipalities file not found, please provide a municipalities json file.')
+            self.api_logger.exception(error)
+
     def insert_ini_users(self, temp_data_path, db_today, db_ini_users_bkp, db_munlist):
         '''
         Function to insert initial users into DB.
@@ -504,7 +542,7 @@ class DatabaseCreation:
 
             else:
                 
-                self.api_logger.info('Database job: Initial users table is not empty. Total number of users: ' + str(n_obs))
+                self.api_logger.info('Database job: Initial users table already filled')
 
         except Exception as error:
 
@@ -559,7 +597,7 @@ class DatabaseCreation:
                 self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
                 self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
                 n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
-                self.api_logger.info('Database job: Number of observations on the users table after droping duplicates: ' + str(n_obs))
+                self.api_logger.info('Database job: Number of observations in the users table after droping duplicates: ' + str(n_obs))
 
         except Exception as error:
 
@@ -579,6 +617,7 @@ class DatabaseCreation:
             if n_obs == 0:
 
                 path_corpus = temp_data_path + 'train_model/TASScorpus.json'
+
                 with open(path_corpus, 'r') as f:
 
                     self.api_logger.info('Data job: Retrieve corpus file.')
@@ -586,41 +625,6 @@ class DatabaseCreation:
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
-                    df = self.treat_corpus(df)
-                    self.api_logger.info('Database job: Insert corpus into DB.')
-                    self.df_to_postgres(df, self.corpus_table)
-                    self.api_logger.info('Database job: Corpus inserted into DB.')
-            
-            else:
-
-                self.api_logger.info('Database job: Corpus table already filled.')
-
-        except Exception as error:
-
-            self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
-            self.api_logger.exception(error)
-
-    def insert_munlist(self, temp_data_path):
-        '''
-        Function to insert corpus into DB.
-        params: self referenced, no params.
-        '''
-        try:
-
-            self.api_logger.info('Database job: Get number of observation of corpus table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_corpus.sql')
-            self.api_logger.info('Database job: Number of observation on corpus table: ' + str(n_obs))
-
-            if n_obs == 0:
-
-                path_corpus = temp_data_path + 'municipalities/munlist.json'
-                with open(path_corpus, 'r') as f:
-
-                    self.api_logger.info('Data job: Retrieve municipalities file.')
-                    df = pd.json_normalize(json.load(f))
-                    self.api_logger.info('Data job: Municipalities number of observations: ' + str(df.shape[0]) + ' observations.')
-                    df.drop_duplicates(inplace = True)
-                    self.api_logger.info('Data job: Drop duplicates of unicipalities: ' + str(df.shape[0]) + ' observations.')
                     df = self.treat_corpus(df)
                     self.api_logger.info('Database job: Insert corpus into DB.')
                     self.df_to_postgres(df, self.corpus_table)

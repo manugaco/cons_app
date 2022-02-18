@@ -39,6 +39,7 @@ db_today = str(dt.today().strftime("%Y-%m-%d"))
 initial_users_table = app_config['initial_users_table']
 users_table = app_config['users_table']
 corpus_table = app_config['corpus_table']
+munlist_table = app_config['munlist_table']
 app_name = app_config['app_name']
 
 ## Check and create directories:
@@ -95,7 +96,7 @@ try:
     dbcreate = DatabaseCreation(queries_path, conn, schema, 
                                 api_logger, urls, headers, 
                                 ini_users_dict, initial_users_table, 
-                                users_table, corpus_table)
+                                users_table, corpus_table, munlist_table)
 
     ## Check schema and tables:
     dbcreate.db_init()
@@ -105,6 +106,10 @@ try:
         db_munlist = json.load(f)
 
     ## Check backups, tables and fill database:
+
+    ## Municipalities:
+    dbcreate.insert_munlist(temp_data_path)
+
     ## Initial users:
     dbcreate.insert_ini_users(temp_data_path, db_today, db_ini_users_bkp, db_munlist)
 
@@ -113,6 +118,8 @@ try:
 
     ## Corpus:
     dbcreate.insert_corpus(temp_data_path)
+
+    
 
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)
