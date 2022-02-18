@@ -72,53 +72,68 @@ logging.basicConfig(
         logging.StreamHandler()
     ])
 
-# Get db config:
+try:
 
-with open('../config/postgres.config') as config_file:
-    db_config = json.load(config_file)
+    api_logger.info('Database jobs: PostgresSQL connection setup.')
 
-# Local database deployment
-conn = psycopg2.connect(
-                        dbname=db_config['db_name'],
-                        user=db_config['db_user'],
-                        host=db_config['db_host'],
-                        port=db_config['db_port'],
-                        password=db_config['db_password'],
-                        options=db_config['db_options']
-                        )
-conn.autocommit = True
-cur = conn.cursor()
-schema = db_config['db_schema']
+    # Get db config:
 
-# Get users table from database:
-with open(queries_path + 'SMI_query_users.sql', 'r') as f:
-    query = f.read().format(schema=schema)
-    cur.execute(query)
-    db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
-    db_users = db_users.astype({"id": object})
+    with open('../config/postgres.config') as config_file:
+        db_config = json.load(config_file)
 
-if db_users.shape[0] == 0:
-    # Get initial users table from database:
-    with open(queries_path + 'SMI_query_ini_users.sql', 'r') as f:
+    # Local database deployment
+    conn = psycopg2.connect(
+                            dbname=db_config['db_name'],
+                            user=db_config['db_user'],
+                            host=db_config['db_host'],
+                            port=db_config['db_port'],
+                            password=db_config['db_password'],
+                            options=db_config['db_options']
+                            )
+    conn.autocommit = True
+    cur = conn.cursor()
+    schema = db_config['db_schema']
+
+    # Get users table from database:
+    with open(queries_path + 'SMI_query_users.sql', 'r') as f:
         query = f.read().format(schema=schema)
         cur.execute(query)
-        db_ini_users = pd.DataFrame(cur.fetchall(), columns = list(ini_users_dict.keys()))
+        db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
+        db_users = db_users.astype({"id": object})
 
-    users_ls = db_ini_users["screenName"].to_list()
-else:
-    users_ls = db_users["screenName"].to_list()
+    if db_users.shape[0] == 0:
+        # Get initial users table from database:
+        with open(queries_path + 'SMI_query_ini_users.sql', 'r') as f:
+            query = f.read().format(schema=schema)
+            cur.execute(query)
+            db_ini_users = pd.DataFrame(cur.fetchall(), columns = list(ini_users_dict.keys()))
 
-# Get munlist:
-with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
-    db_munlist = json.load(config_file)
+        users_ls = db_ini_users["screenName"].to_list()
+    else:
+        users_ls = db_users["screenName"].to_list()
 
-#Instancialize users pipeline class:
-upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
+    # Get munlist:
+    with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
+        db_munlist = json.load(config_file)
 
-# Treat munlist:
-db_munlist = [upipe.text_cleaner(name) for name in db_munlist]
-userls = rd.sample(users_ls, nusers_sample)
+    #Instancialize users pipeline class:
+    upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
 
-# Get several users loop:
-for user in userls:
-    upipe.get_and_insert_new_users(user, db_munlist, api)
+    # Treat munlist:
+    db_munlist = [upipe.text_cleaner(name) for name in db_munlist]
+    userls = rd.sample(users_ls, nusers_sample)
+
+    # Get several users loop:
+    for user in userls:
+        upipe.get_and_insert_new_users(user, db_munlist, api)
+
+except (Exception, psycopg2.DatabaseError) as error:
+    logging.exception(error)
+    finally_exit = 1
+
+finally:
+    if cur:
+        cur.close()
+    if conn:
+        conn.close()
+    logging.info('Database job: PostgresSQL connection is closed.')

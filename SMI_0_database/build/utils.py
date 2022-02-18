@@ -509,9 +509,9 @@ class DatabaseCreation:
             with open(path_corpus, 'r') as f:
                 self.api_logger.info('Data job: Retrieve corpus file.')
                 df = pd.json_normalize(json.load(f))
-                self.api_logger.info('Data job: Corpus length: ' + str(df.shape[0]) + ' observations')
+                self.api_logger.info('Data job: Corpus length: ' + str(df.shape[0]) + ' observations.')
                 df.drop_duplicates(inplace = True)
-                self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations')
+                self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
                 df = self.treat_corpus(df)
                 self.api_logger.info('Database job: Insert corpus into DB.')
                 self.df_to_postgres(df, self.corpus_table)
