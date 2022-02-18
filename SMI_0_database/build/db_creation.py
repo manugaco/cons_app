@@ -111,7 +111,7 @@ try:
     dbcreate.insert_munlist(temp_data_path)
 
     ## Initial users:
-    dbcreate.insert_ini_users(temp_data_path, db_today, db_ini_users_bkp, db_munlist)
+    dbcreate.insert_ini_users(temp_data_path, db_today)
 
     ## Users:
     dbcreate.insert_users(temp_data_path, db_users_bkp, db_munlist)

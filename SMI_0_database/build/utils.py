@@ -265,7 +265,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def treat_corpus(self, df):
+    def treat_text(self, df, text_col, date_col = 'date', sent_col = 'sentiment'):
         '''
         Function to treat the corpus columns:
         params:
@@ -275,13 +275,17 @@ class DatabaseCreation:
         try:
 
             #Columns treatment:
-            df['date'] = pd.to_datetime(df['date'])
-            df['content'] = df['content'].replace(',','', regex=True)
-            df['content'] = df['content'].replace('"','', regex=True)
-            df['content'] = df['content'].replace(r'\\',' ', regex=True)
-            df['content'] = df['content'].replace(r'\r+|\n+|\t+','', regex=True)
-            df['content']= df['content'].replace('[^a-zA-Z0-9]', '')
-            df['sentiment'] = df['sentiment'].replace(',','', regex=True)
+        
+            df[text_col] = df[text_col].replace(',','', regex=True)
+            df[text_col] = df[text_col].replace('"','', regex=True)
+            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
+            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
+            df[text_col]= df[text_col].replace('[^a-zA-Z0-9]', '')
+            
+            if date_col == 'date':
+                df[date_col] = pd.to_datetime(df[date_col])
+            if sent_col == 'sentiment':
+                df[sent_col] = df[sent_col].replace(',','', regex=True)
             return(df)
 
         except Exception as error:
@@ -525,7 +529,7 @@ class DatabaseCreation:
             self.api_logger.info('Data job: Municipalities file not found, please provide a municipalities json file.')
             self.api_logger.exception(error)
 
-    def insert_ini_users(self, temp_data_path, db_today, db_ini_users_bkp, db_munlist):
+    def insert_ini_users(self, temp_data_path, db_today):
         '''
         Function to insert initial users into DB.
         params: self referenced, no params.
@@ -542,7 +546,7 @@ class DatabaseCreation:
 
             else:
                 
-                self.api_logger.info('Database job: Initial users table already filled')
+                self.api_logger.info('Database job: Initial users table already filled.')
 
         except Exception as error:
 
@@ -625,11 +629,11 @@ class DatabaseCreation:
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
-                    df = self.treat_corpus(df)
+                    df = self.treat_text(df, 'content')
                     self.api_logger.info('Database job: Insert corpus into DB.')
                     self.df_to_postgres(df, self.corpus_table)
                     self.api_logger.info('Database job: Corpus inserted into DB.')
-            
+                    
             else:
 
                 self.api_logger.info('Database job: Corpus table already filled.')
