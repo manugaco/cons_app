@@ -265,33 +265,6 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def treat_text(self, df, text_col, date_col = 'date', sent_col = 'sentiment'):
-        '''
-        Function to treat the corpus columns:
-        params:
-            - df: dataframe to treat.
-        Output: Dataframe treated.
-        '''
-        try:
-
-            #Columns treatment:
-        
-            df[text_col] = df[text_col].replace(',','', regex=True)
-            df[text_col] = df[text_col].replace('"','', regex=True)
-            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
-            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
-            df[text_col]= df[text_col].replace('[^a-zA-Z0-9]', '')
-            
-            if date_col == 'date':
-                df[date_col] = pd.to_datetime(df[date_col])
-            if sent_col == 'sentiment':
-                df[sent_col] = df[sent_col].replace(',','', regex=True)
-            return(df)
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
     def fetchone_SQL(self, path):
         """
         Function to fetch one observation from a query to database:
@@ -320,13 +293,17 @@ class DatabaseCreation:
         params:
             - path: relative path to the file.
         """
+        # Read the SQL query from .sql file:
         with open(path, 'r') as f: 
 
             query = f.read().format(schema=self.schema)
+
+        # Initialize SQL cursor:
         cur = self.conn.cursor()
 
         try:
-
+            
+            #Execute query
             cur.execute(query)
             db_fetch = cur.fetchall()
             db_fetch = [db_fetch[i][0] for i in range(len(db_fetch))]
@@ -345,7 +322,6 @@ class DatabaseCreation:
             - path: relative path to the file.
         """
         with open(path, 'r') as f:
-
             query = f.read().format(schema=self.schema)
         cur = self.conn.cursor()
 
@@ -497,6 +473,39 @@ class DatabaseCreation:
                 self.api_logger.info('Database job: Cold start - Creating SMI schema and tables on DB.')
                 self.query_SQL(self.queries_path + 'SMI_coldstart_database.sql')
                 self.api_logger.info('Database job: DB schema and tables created.')
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def treat_text(self, df, text_col, date_col = 'date', sent_col = 'sentiment'):
+        '''
+        Function to treat the corpus columns:
+        params:
+            - df: dataframe to treat.
+        Output: Dataframe treated.
+        '''
+        try:
+            
+            # Sanity check (remove empty tweets):
+
+            df = df[df[text_col] != '']
+
+            #Columns treatment:
+        
+            df[text_col] = df[text_col].replace(',','', regex=True)
+            df[text_col] = df[text_col].replace('"','', regex=True)
+            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
+            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
+            df[text_col]= df[text_col].replace('[^a-zA-Z0-9]', '')
+            
+            # Formatting corpus columns:
+
+            if date_col == 'date':
+                df[date_col] = pd.to_datetime(df[date_col])
+            if sent_col == 'sentiment':
+                df[sent_col] = df[sent_col].replace(',','', regex=True)
+            return(df)
 
         except Exception as error:
 
@@ -694,22 +703,8 @@ class DatabaseCreation:
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', date_col = None, sent_col = None)
 
-            # Columns sanity check:
-            if not 'username' in (list(df.columns)):
-                df['username'] = None
-            if not 'date' in (list(df.columns)):
-                df['date'] = None
-            if not 'retweets' in (list(df.columns)):
-                df['retweets'] = None
-            if not 'favorites' in (list(df.columns)):
-                df['favorites'] = None
-            if not 'text' in (list(df.columns)):
-                df['text'] = None
-
-            df = df.astype({"retweets": int, "favorites": int})
-
             # Once the text is treated, it is persisted on the database.
-            df = df[['username', 'date', 'retweets', 'favorites', 'text']]
+            df = df[['username', 'date', 'text']]
             self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
