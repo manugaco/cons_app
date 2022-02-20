@@ -642,3 +642,68 @@ class DatabaseCreation:
 
             self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
             self.api_logger.exception(error)
+
+    def format_tweets_input(self, path, dir, file):
+        '''
+        Function to insert tweets on database after format them from 
+        a backup json file inside a directory recursively.
+        params:
+            - path: path to backup directory.
+            - dir: name of directory.
+            - file: name of the file
+        '''
+        try:
+            # Provided the parameters, it loads the json file.
+            with open(path + dir + '/' + file, 'r') as f:
+                df = pd.DataFrame(json.load(f))
+            
+            # Once the file is loaded, the tweets are treated.
+            df = self.treat_text(df, 'text', date_col = None, sent_col = None)
+
+            # Columns sanity check:
+            if not 'username' in (list(df.columns)):
+                df['username'] = None
+            if not 'date' in (list(df.columns)):
+                df['date'] = None
+            if not 'retweets' in (list(df.columns)):
+                df['retweets'] = None
+            if not 'favorites' in (list(df.columns)):
+                df['favorites'] = None
+            if not 'text' in (list(df.columns)):
+                df['text'] = None
+
+            # Once the text is treated, it is persisted on the database. 
+            self.df_to_postgres(df, 'smi_tweets')
+
+        except Exception as error:
+            print(error)
+
+    def insert_tweets(self, temp_data_path):
+        '''
+        Function to insert tweets into DB.
+        params: self referenced, no params.
+        '''
+        try:
+
+            self.api_logger.info('Database job: Getting number of observation of tweets table.')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_tweets.sql')
+            self.api_logger.info('Database job: Number of observation on tweets table: ' + str(n_obs))
+
+            if n_obs == 0:
+
+                path_tweets = temp_data_path + 'get_tweets/'
+                dirs = os.listdir(path_tweets)
+                for dire in dirs:
+                    files = os.listdir(path_tweets + dire + '/')
+                    for file in files:
+                        self.api_logger.info('Database job: Inserting file: ' + file)
+                        self.format_tweets_input(path_tweets, dire, file)
+                        self.api_logger.info('Database job: File inserted: ' + file)
+                    
+            else:
+                self.api_logger.info('Database job: Tweets table already filled.')
+
+        except Exception as error:
+
+            self.api_logger.info('Data job: Tweet file not found, please provide a tweet json file.')
+            self.api_logger.exception(error)

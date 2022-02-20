@@ -107,27 +107,26 @@ try:
 
     ## Check backups, tables and fill database:
 
-    ## Municipalities:
+    ## Insert municipalities:
     dbcreate.insert_munlist(temp_data_path)
 
-    ## Initial users:
+    ## Insert initial users:
     dbcreate.insert_ini_users(temp_data_path, db_today)
 
-    ## Users:
+    ## Insert users:
     dbcreate.insert_users(temp_data_path, db_users_bkp, db_munlist)
 
-    ## Corpus:
+    ## Insert corpus:
     dbcreate.insert_corpus(temp_data_path)
 
-    
+    ## Insert Tweets:
+    dbcreate.insert_tweets(temp_data_path)
 
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)
     finally_exit = 1
 
 finally:
-    if cur:
-        cur.close()
     if conn:
         conn.close()
     logging.info('Database job: PostgresSQL connection is closed.')
