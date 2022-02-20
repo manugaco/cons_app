@@ -441,7 +441,7 @@ class DatabaseCreation:
 
                 ## Check corpus table.
                 self.api_logger.info('Database job: Check if corpus table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_check.sql')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_table_check.sql')
 
                 # If exists, do nothing.
                 if db_ini_check:
@@ -453,8 +453,42 @@ class DatabaseCreation:
 
                     self.api_logger.info('Database job: Corpus table does not exist on DB.')
                     self.api_logger.info('Database job: Creating corpus table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_corpus_creation.sql')
+                    self.query_SQL(self.queries_path + 'SMI_corpus_table_creation.sql')
                     self.api_logger.info('Database job: Corpus table created on DB.')
+
+                ## Check munlist table.
+                self.api_logger.info('Database job: Check if municipalities table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_munlist_table_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Municipalities table exist on DB.')
+
+                # If it does not exist, create munlist table.
+                else:
+
+                    self.api_logger.info('Database job: Municipalities table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating municipalities table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_munlist_table_creation.sql')
+                    self.api_logger.info('Database job: Municipalities table created on DB.')
+
+                ## Check tweets table.
+                self.api_logger.info('Database job: Check if tweets table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_tweets_table_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Tweets table exist on DB.')
+
+                # If it does not exist, create tweets table.
+                else:
+
+                    self.api_logger.info('Database job: Tweets table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating tweets table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_tweets_table_creation.sql')
+                    self.api_logger.info('Database job: Tweets table created on DB.')
 
             # If schema does not exists, create schema and tables.
             else:
@@ -672,7 +706,10 @@ class DatabaseCreation:
             if not 'text' in (list(df.columns)):
                 df['text'] = None
 
-            # Once the text is treated, it is persisted on the database. 
+            df = df.astype({"retweets": int, "favorites": int})
+
+            # Once the text is treated, it is persisted on the database.
+            df = df[['username', 'date', 'retweets', 'favorites', 'text']]
             self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
@@ -696,9 +733,9 @@ class DatabaseCreation:
                 for dire in dirs:
                     files = os.listdir(path_tweets + dire + '/')
                     for file in files:
-                        self.api_logger.info('Database job: Inserting file: ' + file)
+                        self.api_logger.info('Database job: Inserting file on DB: ' + file)
                         self.format_tweets_input(path_tweets, dire, file)
-                        self.api_logger.info('Database job: File inserted: ' + file)
+                        self.api_logger.info('Database job: File inserted on DB: ' + file)
                     
             else:
                 self.api_logger.info('Database job: Tweets table already filled.')
