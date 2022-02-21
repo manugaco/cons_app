@@ -15,6 +15,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from utils import *
+from cons_app.SMI_commons.smi_commons import *
 
 # GLOBAL Params:
 
@@ -117,6 +118,7 @@ try:
         db_munlist = json.load(config_file)
 
     #Instancialize users pipeline class:
+    cfs = CommonFunctions(queries_path, conn, schema, api_logger)
     upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
 
     # Treat munlist:

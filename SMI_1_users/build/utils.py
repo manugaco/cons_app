@@ -120,7 +120,7 @@ class UsersPipeline:
         except Exception as error:
             self.api_logger.exception(error)
 
-    def twt_transform(self, list):
+    def ff_transform(self, list):
         '''
         Function to adapt the API friends and followers information format:
         params:
@@ -166,7 +166,7 @@ class UsersPipeline:
 
             if len(followers) > 0:
                 #Transform format:
-                df_followers = self.twt_transform(followers)
+                df_followers = self.ff_transform(followers)
             else:
                 df_followers = pd.DataFrame()
             self.api_logger.info('Twitter API job: Number of followers retrieved: ' + str(df_followers.shape[0]))
@@ -179,7 +179,7 @@ class UsersPipeline:
                 
             if len(friends) > 0:
                 #Transform format:
-                df_friends = self.twt_transform(friends)
+                df_friends = self.ff_transform(friends)
             else:
                 df_friends = pd.DataFrame()
             self.api_logger.info('Twitter API job: Number of friends retrieved from user: ' + str(df_friends.shape[0]))

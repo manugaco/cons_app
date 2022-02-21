@@ -6,6 +6,7 @@ import psycopg2
 import json
 
 from utils import *
+from cons_app.SMI_commons.smi_commons import *
 
 ## GLOBAL Params:
 
@@ -125,8 +126,3 @@ try:
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)
     finally_exit = 1
-
-finally:
-    if conn:
-        conn.close()
-    logging.info('Database job: PostgresSQL connection is closed.')

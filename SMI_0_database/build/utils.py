@@ -486,26 +486,28 @@ class DatabaseCreation:
         Output: Dataframe treated.
         '''
         try:
-            
-            # Sanity check (remove empty tweets):
 
-            df = df[df[text_col] != '']
-
-            #Columns treatment:
-        
-            df[text_col] = df[text_col].replace(',','', regex=True)
-            df[text_col] = df[text_col].replace('"','', regex=True)
-            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
-            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
-            df[text_col]= df[text_col].replace('[^a-zA-Z0-9]', '')
-            
             # Formatting corpus columns:
 
             if date_col == 'date':
                 df[date_col] = pd.to_datetime(df[date_col])
             if sent_col == 'sentiment':
                 df[sent_col] = df[sent_col].replace(',','', regex=True)
+
+            #Columns treatment:
+
+            df[text_col] = df[text_col].replace(',','', regex=True)
+            df[text_col] = df[text_col].replace('"','', regex=True)
+            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
+            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
+            df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
+
+            # Sanity check (remove empty tweets):
+
+            df = df[df[text_col] != '']
+
             return(df)
+
 
         except Exception as error:
 
@@ -672,7 +674,7 @@ class DatabaseCreation:
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
-                    df = self.treat_text(df, 'content')
+                    df = self.treat_text(df, "content")
                     self.api_logger.info('Database job: Insert corpus into DB.')
                     self.df_to_postgres(df, self.corpus_table)
                     self.api_logger.info('Database job: Corpus inserted into DB.')
@@ -701,7 +703,7 @@ class DatabaseCreation:
                 df = pd.DataFrame(json.load(f))
             
             # Once the file is loaded, the tweets are treated.
-            df = self.treat_text(df, 'text', date_col = None, sent_col = None)
+            df = self.treat_text(df, "text", date_col = None, sent_col = None)
 
             # Once the text is treated, it is persisted on the database.
             df = df[['username', 'date', 'text']]
