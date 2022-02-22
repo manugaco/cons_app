@@ -460,6 +460,16 @@ class DatabaseCreation:
                 ("ó", "o"),
                 ("ú", "u"),
                 ("ñ", 'n'),
+                ("à", "a"),
+                ("è", "e"),
+                ("ì", "i"),
+                ("ò", "o"),
+                ("ù", "u"),
+                ("ä", 'a'),
+                ("ë", "e"),
+                ("ï", "i"),
+                ("ö", "o"),
+                ("ü", "u"),
             )
             #Replace with tuple:
             for a, b in replacements:
@@ -469,6 +479,27 @@ class DatabaseCreation:
             self.api_logger.exception(error)
 
     def filter_usrs_loc(self, df, munlist):
+        '''
+        Function to filter the location field given a municipalities list, to ensure spanish users:
+        params:
+            - df: input dataframe with users information:
+            - munlist: list of municipalities:
+        Output: filtered users table.
+        '''
+        try:
+
+            # Adapt location string
+            df['location'] = df['location'].apply(lambda r: self.text_clean_loc(r.lower().replace(',', '')))
+
+            # Filter location:
+            df = df[df['location'].isin(munlist)]
+            return(df)
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def filter_usrs_loc2(self, df, munlist):
         '''
         Function to filter the location field given a municipalities list, 
         to ensure spanish users:
@@ -487,7 +518,7 @@ class DatabaseCreation:
 
             # Filter location:
             df = df[df['location'].isin(munlist)]
-            return(df)
+            return(df.drop_duplicates(inplace=True))
 
         except Exception as error:
 

@@ -53,6 +53,7 @@ class UsersPipeline:
             #Execute query
             cur.execute(query)
             db_fetch = cur.fetchall()
+            
             return(db_fetch)
 
         except (Exception, psycopg2.DatabaseError) as error:

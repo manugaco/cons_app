@@ -102,16 +102,18 @@ try:
     dbcreate.db_init()
 
     #Get municipalities list:
-    with open(temp_data_path + db_munlist_bkp) as f:
-        db_munlist = json.load(f)
+    #with open(temp_data_path + db_munlist_bkp) as f:
+    #    db_munlist = json.load(f)
 
     ## Check backups, tables and fill database:
 
     ## Insert municipalities:
     dbcreate.insert_munlist(temp_data_path)
 
-    #db_munlist = dbcreate.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
-
+    db_munlist = dbcreate.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
+    munlist = pd.DataFrame(db_munlist, columns = ['location'])['location'].tolist()
+    db_munlist = [dbcreate.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
+    
     ## Insert initial users:
     dbcreate.insert_ini_users(temp_data_path, db_today)
 

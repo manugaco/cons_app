@@ -15,7 +15,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from utils import *
-from cons_app.SMI_commons.smi_commons import *
 
 # GLOBAL Params:
 
@@ -116,14 +115,16 @@ try:
         users_ls = db_users["screenName"].to_list()
 
     # Get munlist:
-    with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
-        db_munlist = json.load(config_file)
+    #with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
+    #    db_munlist = json.load(config_file)
 
     # Users pipeline class instance:
     upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
 
-    # Treat munlist:
-    db_munlist = [upipe.text_clean_loc(name.lower().replace(',', '')) for name in db_munlist]
+    # Retrieve munlist from DB:
+    db_munlist = upipe.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
+    munlist = pd.DataFrame(db_munlist, columns = ['location'])['location'].tolist()
+    db_munlist = [upipe.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
     
     # Sample users:
     userls = rd.sample(users_ls, nusers_sample)
