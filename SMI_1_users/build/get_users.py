@@ -95,6 +95,8 @@ try:
     cur = conn.cursor()
     schema = db_config['db_schema']
 
+    ##Decide whether the users to start with for the retrieval 
+    # are the initial or the backup userss
     # Get users table from database:
     with open(queries_path + 'SMI_query_users.sql', 'r') as f:
         query = f.read().format(schema=schema)
@@ -117,12 +119,13 @@ try:
     with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
         db_munlist = json.load(config_file)
 
-    #Instancialize users pipeline class:
-    cfs = CommonFunctions(queries_path, conn, schema, api_logger)
+    # Users pipeline class instance:
     upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
 
     # Treat munlist:
-    db_munlist = [upipe.text_cleaner(name) for name in db_munlist]
+    db_munlist = [upipe.text_clean_loc(name.lower().replace(',', '')) for name in db_munlist]
+    
+    # Sample users:
     userls = rd.sample(users_ls, nusers_sample)
 
     # Get several users loop:

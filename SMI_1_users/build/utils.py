@@ -33,7 +33,36 @@ class UsersPipeline:
         self.temp_data_path = temp_data_path
         self.api_logger = api_logger
 
-    def normalize(self, name):
+    ## DATABASE QUERY FUNCTIONS:
+
+    def fetchall_SQL(self, path):
+        """
+        Function to fetch all observations from a query to databasee:
+        params:
+            - path: relative path to the file.
+        """
+        # Read the SQL query from .sql file:
+        with open(path, 'r') as f: 
+            query = f.read().format(schema=self.schema)
+
+        # Initialize SQL cursor:
+        cur = self.conn.cursor()
+
+        try:
+
+            #Execute query
+            cur.execute(query)
+            db_fetch = cur.fetchall()
+            return(db_fetch)
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.conn.rollback()
+            self.api_logger.exception(error)
+        cur.close()
+
+    ## TEXT TREATMENT FUNCTIONS:
+
+    def text_clean_loc(self, name):
         '''
         Function to remove accents from an alphanumeric string:
         params:
@@ -57,21 +86,6 @@ class UsersPipeline:
         except Exception as error:
             self.api_logger.exception(error)
 
-    def text_cleaner(self, name):
-        '''
-        Function to adapt the text of the municipalities list.
-        parameters:
-            - name: municipality.
-        Output: municipality without special characters.
-        '''
-        try:
-            #Normalize text:
-            name = self.normalize(name)
-            return(name)
-
-        except Exception as error:
-            self.api_logger.exception(error)
-
     def clean_loc(self, loc, munlist):
         '''
         Function to flag if the location, after being cleaned, still exist
@@ -81,7 +95,11 @@ class UsersPipeline:
         Output: flag which indicates whether the location exists.
         '''
         try:
-            loc = self.text_cleaner(loc.lower().replace(',', ''))
+            
+            #Adapt text format to location column:
+            loc = self.text_clean_loc(loc.lower().replace(',', ''))
+
+            #Return dicotomic flag if user location is on munlist:
             if loc in munlist:
                 return 1
             else:
@@ -119,6 +137,8 @@ class UsersPipeline:
             return(output)
         except Exception as error:
             self.api_logger.exception(error)
+
+    ## FRIENDS AND FOLLOWERS FUNCTIONS:
 
     def ff_transform(self, list):
         '''
@@ -187,7 +207,7 @@ class UsersPipeline:
             #Output dataframe:
             output = pd.concat([df_followers, df_friends], axis=0)
             output.drop_duplicates(inplace=True)
-            
+
             #Adapt id format:
             output = output.astype({"id": object})
             if output.shape[0] > 0:
@@ -198,27 +218,6 @@ class UsersPipeline:
         except Exception:
             self.api_logger.info('Raised exception, getting info from next user')
             pass
-            
-    def filter_usrs_loc(self, df, munlist):
-        '''
-        Function to filter the location field given a municipalities list, to ensure spanish users:
-        params:
-            - df: input dataframe with users information:
-            - munlist: list of municipalities:
-        Output: filtered users table.
-        '''
-        try:
-            self.api_logger.info('Data job: Filtering location of new users.')
-            #Convert location field to lower case:
-            df['location'] = df['location'].apply(lambda r: r.lower())
-
-            #Filter location:
-            df = df[df['location'].isin(munlist)]
-            
-            return(df)
-
-        except Exception as error:
-            self.api_logger.exception(error)
 
     def update_user_lookup(self, user):
         '''
@@ -237,25 +236,6 @@ class UsersPipeline:
         except (Exception, psycopg2.DatabaseError) as error:
             self.conn.rollback()
             self.api_logger.exception(error)
-
-    def fetchall_SQL(self, path):
-        """
-        Function to fetch all observations from a query to databasee:
-        params:
-            - path: relative path to the file.
-        """
-        with open(path, 'r') as f: 
-            query = f.read().format(schema=self.schema)
-        cur = self.conn.cursor()
-        try:
-            cur.execute(query)
-            db_fetch = cur.fetchall()
-            return(db_fetch)
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            self.conn.rollback()
-            self.api_logger.exception(error)
-        cur.close()
 
     def insert_new_users_into_db(self, user_row):
         '''

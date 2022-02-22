@@ -6,7 +6,6 @@ import psycopg2
 import json
 
 from utils import *
-from cons_app.SMI_commons.smi_commons import *
 
 ## GLOBAL Params:
 
@@ -110,6 +109,8 @@ try:
 
     ## Insert municipalities:
     dbcreate.insert_munlist(temp_data_path)
+
+    #db_munlist = dbcreate.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
 
     ## Insert initial users:
     dbcreate.insert_ini_users(temp_data_path, db_today)

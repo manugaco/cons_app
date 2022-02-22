@@ -43,6 +43,227 @@ class DatabaseCreation:
         self.corpus_table = corpus_table
         self.munlist_table = munlist_table
 
+    ## DATABASE QUERY FUNCTIONS:
+
+    def fetchone_SQL(self, path):
+        """
+        Function to fetch one observation from a query to database:
+        params:
+            - path: relative path to the file.
+        """
+        with open(path, 'r') as f:
+
+            query = f.read().format(schema = self.schema)
+        cur = self.conn.cursor()
+
+        try:
+
+            cur.execute(query)
+            return(cur.fetchone()[0])
+
+        except (Exception, psycopg2.DatabaseError) as error:
+
+            self.conn.rollback()
+            cur.close()
+            self.api_logger.exception(error) 
+    
+    def fetchall_SQL(self, path):
+        """
+        Function to fetch all observations from the first column in a query to databasee:
+        params:
+            - path: relative path to the file.
+        """
+        # Read the SQL query from .sql file:
+        with open(path, 'r') as f: 
+
+            query = f.read().format(schema=self.schema)
+
+        # Initialize SQL cursor:
+        cur = self.conn.cursor()
+
+        try:
+            
+            #Execute query
+            cur.execute(query)
+            db_fetch = cur.fetchall()
+
+            #Get first column of dataframe (userName)
+            db_fetch = [db_fetch[i][0] for i in range(len(db_fetch))]
+            return(db_fetch)
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.conn.rollback()
+            self.api_logger.exception(error)
+
+        cur.close()
+
+    def query_SQL(self, path):
+        """
+        Function to make a query to database:
+        params:
+            - path: relative path to the file.
+        """
+        with open(path, 'r') as f:
+            query = f.read().format(schema=self.schema)
+        cur = self.conn.cursor()
+
+        try:
+
+            cur.execute(query)
+
+        except (Exception, psycopg2.DatabaseError) as error:
+
+            self.conn.rollback()
+            self.api_logger.exception(error)
+
+        cur.close()
+
+    def df_to_postgres(self, df, table):
+        """
+        Function to save dataframe into postgres with copy_from:
+        params:
+            - conn: database connection.
+            - df: pandas dataframe.
+            - table: database table.
+        """
+        #Buffering the dataframe into memory:
+        buffer = StringIO()
+        df.to_csv(buffer, header=False, index=False)
+        buffer.seek(0)
+
+        #Copy cached dataframe into postgres:
+        cur = self.conn.cursor()
+
+        try:
+
+            cur.copy_from(buffer, table, sep=",")
+            self.conn.commit()
+
+        except (Exception, psycopg2.DatabaseError) as error:
+
+            self.conn.rollback()
+            cur.close()
+            self.api_logger.exception(error)
+
+        cur.close()
+
+    ## DATABASE INITIALIZATION FUNCTION:
+    
+    def db_init(self):
+        '''
+        Function to check and create the database schema and tables.
+        params: selft referenced, no params.
+        '''
+        try:
+
+            # Check if the schema exists.
+            self.api_logger.info('Database job: Check if SMI schema exists.')
+            schema_check = self.fetchone_SQL(self.queries_path + 'SMI_schema_check.sql')
+
+            # If schema exist, check tables.
+            if schema_check:
+
+                self.api_logger.info('Database job: SMI schema exists on DB.')
+
+                ## Check initial users table.
+                self.api_logger.info('Database job: Check if initial users table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_ini_users_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Initial users table exist on DB.')
+
+                # If it does not exist, create initial users table.
+                else:
+
+                    self.api_logger.info('Database job: Initial users table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating initial users table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_ini_users_table_creation.sql')
+                    self.api_logger.info('Database job: Initial users table created on DB.')
+
+                ## Check users table.
+                self.api_logger.info('Database job: Check if users table exist on DB.')
+                db_usr_check = self.fetchone_SQL(self.queries_path + 'SMI_usrs_table_check.sql')
+
+                #If exists, do nothing.
+                if db_usr_check:
+
+                    self.api_logger.info('Database job: Users table exist on DB.')
+
+                #If it does not exist, create users table.
+                else:
+
+                    self.api_logger.info('Database job: Users table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating users table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
+                    self.api_logger.info('Database job: Users table created on DB.')
+
+                ## Check corpus table.
+                self.api_logger.info('Database job: Check if corpus table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_table_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Corpus table exist on DB.')
+
+                # If it does not exist, create corpus table.
+                else:
+
+                    self.api_logger.info('Database job: Corpus table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating corpus table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_corpus_table_creation.sql')
+                    self.api_logger.info('Database job: Corpus table created on DB.')
+
+                ## Check munlist table.
+                self.api_logger.info('Database job: Check if municipalities table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_munlist_table_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Municipalities table exist on DB.')
+
+                # If it does not exist, create munlist table.
+                else:
+
+                    self.api_logger.info('Database job: Municipalities table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating municipalities table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_munlist_table_creation.sql')
+                    self.api_logger.info('Database job: Municipalities table created on DB.')
+
+                ## Check tweets table.
+                self.api_logger.info('Database job: Check if tweets table exist on DB.')
+                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_tweets_table_check.sql')
+
+                # If exists, do nothing.
+                if db_ini_check:
+
+                    self.api_logger.info('Database job: Tweets table exist on DB.')
+
+                # If it does not exist, create tweets table.
+                else:
+
+                    self.api_logger.info('Database job: Tweets table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating tweets table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_tweets_table_creation.sql')
+                    self.api_logger.info('Database job: Tweets table created on DB.')
+
+            # If schema does not exists, create schema and tables.
+            else:
+
+                self.api_logger.info('Database job: SMI schema does not exist.')
+                self.api_logger.info('Database job: Cold start - Creating SMI schema and tables on DB.')
+                self.query_SQL(self.queries_path + 'SMI_coldstart_database.sql')
+                self.api_logger.info('Database job: DB schema and tables created.')
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    ## INITIAL USERS SCRAPPING:
+
     def get_info(self, url, header):
         '''
         Function to get the initial twitter users file.
@@ -196,20 +417,74 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
+    def scrap_users(self, temp_data_path, db_today):
+        '''
+        Function to scrap initial users from url:
+        params: self referenced, no params.
+        '''
+        try:
+
+            # Scrap ini users, create backup and fill database table:
+            self.api_logger.info('Scraping job: Retrieve initial users from url.')
+            df = self.get_tw_users_list()
+            self.api_logger.info('Scraping job: Initial users from url retrieved.')
+            
+            # Save initial users to backup:
+            self.api_logger.info('Scraping job: Save initial users to json backup.')
+            df.to_json(temp_data_path + 'get_users/db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
+            
+            # Store initial users on DB:
+            self.api_logger.info('Database job: Insert initial users on DB.')
+            self.df_to_postgres(df, self.initial_users_table)
+            self.api_logger.info('Database job: Initial users inserted on DB.')
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    ## USERS FUNCTIONS:
+
+    def text_clean_loc(self, name):
+        '''
+        Function to remove accents from an alphanumeric string:
+        params:
+            - name: character string.
+        Output: string without accents.
+        '''
+        try:
+            #Define replacements (possible accents or other special char)
+            replacements = (
+                ("á", "a"),
+                ("é", "e"),
+                ("í", "i"),
+                ("ó", "o"),
+                ("ú", "u"),
+                ("ñ", 'n'),
+            )
+            #Replace with tuple:
+            for a, b in replacements:
+                name = name.replace(a, b).replace(a.upper(), b.upper())
+            return(name)
+        except Exception as error:
+            self.api_logger.exception(error)
+
     def filter_usrs_loc(self, df, munlist):
         '''
-        Function to filter the location field given a municipalities list, to ensure spanish users:
+        Function to filter the location field given a municipalities list, 
+        to ensure spanish users:
         params:
             - df: input dataframe with users information:
             - munlist: list of municipalities:
         Output: filtered users table.
         '''
         try:
+            self.api_logger.info('Data job: Filtering location of backup users.')
+            # Adapt location column on users dataframe:
+            df['location'] = df['location'].apply(lambda r: self.text_clean_loc(r.lower().replace(',', '')))
 
-            # Adapt location string
-            df['location'] = df['location'].apply(lambda r: r.replace(',', ''))
-            # Convert location field to lower case:
-            df['location'] = df['location'].apply(lambda r: r.lower())
+            # Adapt location list:
+            munlist = [self.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
+
             # Filter location:
             df = df[df['location'].isin(munlist)]
             return(df)
@@ -265,218 +540,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def fetchone_SQL(self, path):
-        """
-        Function to fetch one observation from a query to database:
-        params:
-            - path: relative path to the file.
-        """
-        with open(path, 'r') as f:
-
-            query = f.read().format(schema = self.schema)
-        cur = self.conn.cursor()
-
-        try:
-
-            cur.execute(query)
-            return(cur.fetchone()[0])
-
-        except (Exception, psycopg2.DatabaseError) as error:
-
-            self.conn.rollback()
-            cur.close()
-            self.api_logger.exception(error) 
-    
-    def fetchall_SQL(self, path):
-        """
-        Function to fetch all observations from a query to databasee:
-        params:
-            - path: relative path to the file.
-        """
-        # Read the SQL query from .sql file:
-        with open(path, 'r') as f: 
-
-            query = f.read().format(schema=self.schema)
-
-        # Initialize SQL cursor:
-        cur = self.conn.cursor()
-
-        try:
-            
-            #Execute query
-            cur.execute(query)
-            db_fetch = cur.fetchall()
-            db_fetch = [db_fetch[i][0] for i in range(len(db_fetch))]
-            return(db_fetch)
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            self.conn.rollback()
-            self.api_logger.exception(error)
-
-        cur.close()
-
-    def query_SQL(self, path):
-        """
-        Function to make a query to database:
-        params:
-            - path: relative path to the file.
-        """
-        with open(path, 'r') as f:
-            query = f.read().format(schema=self.schema)
-        cur = self.conn.cursor()
-
-        try:
-
-            cur.execute(query)
-
-        except (Exception, psycopg2.DatabaseError) as error:
-
-            self.conn.rollback()
-            self.api_logger.exception(error)
-
-        cur.close()
-
-    def df_to_postgres(self, df, table):
-        """
-        Function to save dataframe into postgres with copy_from:
-        params:
-            - conn: database connection.
-            - df: pandas dataframe.
-            - table: database table.
-        """
-        #Buffering the dataframe into memory:
-        buffer = StringIO()
-        df.to_csv(buffer, header=False, index=False)
-        buffer.seek(0)
-
-        #Copy cached dataframe into postgres:
-        cur = self.conn.cursor()
-
-        try:
-
-            cur.copy_from(buffer, table, sep=",")
-            self.conn.commit()
-
-        except (Exception, psycopg2.DatabaseError) as error:
-
-            self.conn.rollback()
-            cur.close()
-            self.api_logger.exception(error)
-
-        cur.close()
-
-    def db_init(self):
-        '''
-        Function to check and create the database schema and tables.
-        params: selft referenced, no params.
-        '''
-        try:
-
-            # Check if the schema exists.
-            self.api_logger.info('Database job: Check if SMI schema exists.')
-            schema_check = self.fetchone_SQL(self.queries_path + 'SMI_schema_check.sql')
-
-            # If schema exist, check tables.
-            if schema_check:
-
-                self.api_logger.info('Database job: SMI schema exists on DB.')
-
-                ## Check initial users table.
-                self.api_logger.info('Database job: Check if initial users table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_ini_users_check.sql')
-
-                # If exists, do nothing.
-                if db_ini_check:
-
-                    self.api_logger.info('Database job: Initial users table exist on DB.')
-
-                # If it does not exist, create initial users table.
-                else:
-
-                    self.api_logger.info('Database job: Initial users table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating initial users table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_ini_users_table_creation.sql')
-                    self.api_logger.info('Database job: Initial users table created on DB.')
-
-                ## Check users table.
-                self.api_logger.info('Database job: Check if users table exist on DB.')
-                db_usr_check = self.fetchone_SQL(self.queries_path + 'SMI_usrs_table_check.sql')
-
-                #If exists, do nothing.
-                if db_usr_check:
-
-                    self.api_logger.info('Database job: Users table exist on DB.')
-
-                #If it does not exist, create users table.
-                else:
-
-                    self.api_logger.info('Database job: Users table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating users table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
-                    self.api_logger.info('Database job: Users table created on DB.')
-
-                ## Check corpus table.
-                self.api_logger.info('Database job: Check if corpus table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_table_check.sql')
-
-                # If exists, do nothing.
-                if db_ini_check:
-
-                    self.api_logger.info('Database job: Corpus table exist on DB.')
-
-                # If it does not exist, create corpus table.
-                else:
-
-                    self.api_logger.info('Database job: Corpus table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating corpus table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_corpus_table_creation.sql')
-                    self.api_logger.info('Database job: Corpus table created on DB.')
-
-                ## Check munlist table.
-                self.api_logger.info('Database job: Check if municipalities table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_munlist_table_check.sql')
-
-                # If exists, do nothing.
-                if db_ini_check:
-
-                    self.api_logger.info('Database job: Municipalities table exist on DB.')
-
-                # If it does not exist, create munlist table.
-                else:
-
-                    self.api_logger.info('Database job: Municipalities table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating municipalities table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_munlist_table_creation.sql')
-                    self.api_logger.info('Database job: Municipalities table created on DB.')
-
-                ## Check tweets table.
-                self.api_logger.info('Database job: Check if tweets table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_tweets_table_check.sql')
-
-                # If exists, do nothing.
-                if db_ini_check:
-
-                    self.api_logger.info('Database job: Tweets table exist on DB.')
-
-                # If it does not exist, create tweets table.
-                else:
-
-                    self.api_logger.info('Database job: Tweets table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating tweets table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_tweets_table_creation.sql')
-                    self.api_logger.info('Database job: Tweets table created on DB.')
-
-            # If schema does not exists, create schema and tables.
-            else:
-
-                self.api_logger.info('Database job: SMI schema does not exist.')
-                self.api_logger.info('Database job: Cold start - Creating SMI schema and tables on DB.')
-                self.query_SQL(self.queries_path + 'SMI_coldstart_database.sql')
-                self.api_logger.info('Database job: DB schema and tables created.')
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
+    ## TEXT TREATMENT FUNCTIONS:
 
     def treat_text(self, df, text_col, date_col = 'date', sent_col = 'sentiment'):
         '''
@@ -500,43 +564,43 @@ class DatabaseCreation:
             df[text_col] = df[text_col].replace('"','', regex=True)
             df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
             df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
-            df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
+            #df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
 
             # Sanity check (remove empty tweets):
 
             df = df[df[text_col] != '']
 
             return(df)
-
-
+            
         except Exception as error:
 
             self.api_logger.exception(error)
 
-    def scrap_users(self, temp_data_path, db_today):
+    def format_tweets_input(self, path, dir, file):
         '''
-        Function to scrap initial users from url:
-        params: self referenced, no params.
+        Function to insert tweets on database after format them from 
+        a backup json file inside a directory recursively.
+        params:
+            - path: path to backup directory.
+            - dir: name of directory.
+            - file: name of the file
         '''
         try:
+            # Provided the parameters, it loads the json file.
+            with open(path + dir + '/' + file, 'r') as f:
+                df = pd.DataFrame(json.load(f))
+            
+            # Once the file is loaded, the tweets are treated.
+            df = self.treat_text(df, "text", date_col = None, sent_col = None)
 
-            # Scrap ini users, create backup and fill database table:
-            self.api_logger.info('Scraping job: Retrieve initial users from url.')
-            df = self.get_tw_users_list()
-            self.api_logger.info('Scraping job: Initial users from url retrieved.')
-            
-            # Save initial users to backup:
-            self.api_logger.info('Scraping job: Save initial users to json backup.')
-            df.to_json(temp_data_path + 'get_users/db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
-            
-            # Store initial users on DB:
-            self.api_logger.info('Database job: Insert initial users on DB.')
-            self.df_to_postgres(df, self.initial_users_table)
-            self.api_logger.info('Database job: Initial users inserted on DB.')
+            # Once the text is treated, it is persisted on the database.
+            df = df[['username', 'date', 'text']]
+            self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
+            print(error)
 
-            self.api_logger.exception(error)
+    ## INSERTION FUNCTIONS:
 
     def insert_munlist(self, temp_data_path):
         '''
@@ -688,29 +752,7 @@ class DatabaseCreation:
             self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
             self.api_logger.exception(error)
 
-    def format_tweets_input(self, path, dir, file):
-        '''
-        Function to insert tweets on database after format them from 
-        a backup json file inside a directory recursively.
-        params:
-            - path: path to backup directory.
-            - dir: name of directory.
-            - file: name of the file
-        '''
-        try:
-            # Provided the parameters, it loads the json file.
-            with open(path + dir + '/' + file, 'r') as f:
-                df = pd.DataFrame(json.load(f))
-            
-            # Once the file is loaded, the tweets are treated.
-            df = self.treat_text(df, "text", date_col = None, sent_col = None)
 
-            # Once the text is treated, it is persisted on the database.
-            df = df[['username', 'date', 'text']]
-            self.df_to_postgres(df, 'smi_tweets')
-
-        except Exception as error:
-            print(error)
 
     def insert_tweets(self, temp_data_path):
         '''
