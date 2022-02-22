@@ -1,5 +1,11 @@
 # Consumption app (cons_app)
 
+## Author
+
+Manu García, MSc in Data Science and Data Scientist.
+
+## Introduction
+
 This app has the aim of deploying the social media consumption index into a server and visualize it.
 
 ## Technologies used
