@@ -4,9 +4,9 @@ This app has the aim of deploying the social media consumption index into a serv
 
 ## Technologies used
 
--Python and postgresSQL.
--Docker.
--json backups format.
+- Python and postgresSQL.
+- Docker.
+- json backups format.
 
 ## Repository structure
 
@@ -35,7 +35,3 @@ Given a labeled dataset, it executes a machine learning modelling pipeline.
 ### SMI_4_visual folder
 
 (to think about...)
-
-### SMI_commons
-
-Set of functions used on different processes.
