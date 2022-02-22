@@ -499,31 +499,6 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def filter_usrs_loc2(self, df, munlist):
-        '''
-        Function to filter the location field given a municipalities list, 
-        to ensure spanish users:
-        params:
-            - df: input dataframe with users information:
-            - munlist: list of municipalities:
-        Output: filtered users table.
-        '''
-        try:
-            self.api_logger.info('Data job: Filtering location of backup users.')
-            # Adapt location column on users dataframe:
-            df['location'] = df['location'].apply(lambda r: self.text_clean_loc(r.lower().replace(',', '')))
-
-            # Adapt location list:
-            munlist = [self.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
-
-            # Filter location:
-            df = df[df['location'].isin(munlist)]
-            return(df.drop_duplicates(inplace=True))
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
     def backup_check(self, path, db_munlist, kind):
         '''
         Function to check whether there are backups.
@@ -582,6 +557,10 @@ class DatabaseCreation:
         '''
         try:
 
+            # Sanity checks :
+            df = df.fillna('')
+            df = df[df[text_col] != '']
+            
             # Formatting corpus columns:
 
             if date_col == 'date':
@@ -597,9 +576,7 @@ class DatabaseCreation:
             df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
             df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
 
-            # Sanity check (remove empty tweets):
-
-            df = df[df[text_col] != '']
+            
 
             return(df)
             
@@ -766,10 +743,12 @@ class DatabaseCreation:
 
                     self.api_logger.info('Data job: Retrieve corpus file.')
                     df = pd.json_normalize(json.load(f))
+                    self.api_logger.info('Data job: Treat text column.')
+                    df = self.treat_text(df, 'content')
+                    self.api_logger.info('Data job: Text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
-                    df = self.treat_text(df, "content")
                     self.api_logger.info('Database job: Insert corpus into DB.')
                     self.df_to_postgres(df, self.corpus_table)
                     self.api_logger.info('Database job: Corpus inserted into DB.')

@@ -95,7 +95,8 @@ try:
     schema = db_config['db_schema']
 
     ##Decide whether the users to start with for the retrieval 
-    # are the initial or the backup userss
+    # are the initial or the backup users
+
     # Get users table from database:
     with open(queries_path + 'SMI_query_users.sql', 'r') as f:
         query = f.read().format(schema=schema)
@@ -114,14 +115,10 @@ try:
     else:
         users_ls = db_users["screenName"].to_list()
 
-    # Get munlist:
-    #with open(temp_data_path + 'municipalities/db_munlist.json') as config_file:
-    #    db_munlist = json.load(config_file)
-
     # Users pipeline class instance:
     upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
 
-    # Retrieve munlist from DB:
+    # Get municipalities from DB:
     db_munlist = upipe.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
     munlist = pd.DataFrame(db_munlist, columns = ['location'])['location'].tolist()
     db_munlist = [upipe.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
