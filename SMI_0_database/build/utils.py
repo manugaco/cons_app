@@ -262,7 +262,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    ## INITIAL USERS SCRAPPING:
+    ## INITIAL USERS FUNCTIONS:
 
     def get_info(self, url, header):
         '''
@@ -595,7 +595,7 @@ class DatabaseCreation:
             df[text_col] = df[text_col].replace('"','', regex=True)
             df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
             df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
-            #df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
+            df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
 
             # Sanity check (remove empty tweets):
 
