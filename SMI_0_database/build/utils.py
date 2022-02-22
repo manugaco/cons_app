@@ -576,8 +576,6 @@ class DatabaseCreation:
             df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
             df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
 
-            
-
             return(df)
             
         except Exception as error:
