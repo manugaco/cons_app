@@ -588,7 +588,8 @@ class DatabaseCreation:
                 eco_filter = pd.concat([eco_filter, pd.read_excel(path + file, header=None)], axis=0)
             eco_filter.drop_duplicates(inplace=True)
             eco_filter = eco_filter.iloc[:,0].to_list()
-            return [self.lemmatize(self.accent_rem(word)).lower() for word in eco_filter]
+            #eco_filter = [self.lemmatize(word) for word in eco_filter]
+            return [self.accent_rem(word) for word in eco_filter]
 
         except Exception as error:
 
@@ -620,7 +621,7 @@ class DatabaseCreation:
         output: the tweets if it contains at least one word in the ecolist.
         '''
         try:
-            commons = list(set(ecolist).intersection(tweet))
+            commons = [word for word in tweet.split() if word in ecolist]
             if len(commons) <= 1:
                 tweet = ''
             return tweet
@@ -691,8 +692,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def treat_text(self, df, text_col, stopw = [],
-    date_col = 'date', sent_col = 'sentiment'):
+    def treat_text(self, df, text_col, stopw = [], date_col = 'date', sent_col = 'sentiment'):
         '''
         Function to treat text columns:
         params:
@@ -708,20 +708,35 @@ class DatabaseCreation:
             
             # Formatting corpus columns:
             if date_col == 'date':
+                self.api_logger.info('Text mining job: Format date column.')
                 df[date_col] = pd.to_datetime(df[date_col])
             if sent_col == 'sentiment':
+                self.api_logger.info('Text mining job: Format sentiment column.')
                 df[sent_col] = df[sent_col].replace(',','', regex=True)
+                df[sent_col] = df[sent_col].apply(lambda r: r.split('AGREEMENT')[0])
+                df[sent_col] = df[sent_col].apply(lambda r: r.split('DI')[0])
 
             #Columns treatment:
+            self.api_logger.info('Text mining job: Remove accents.')
             df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
+            self.api_logger.info('Text mining job: Remove special characters.')
             df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
+            self.api_logger.info('Text mining job: Low case words.')
             df[text_col] = df[text_col].apply(lambda r: r.lower())
+            self.api_logger.info('Text mining job: Remove numbers.')
             df[text_col] = df[text_col].apply(lambda r: self.remove_num(r))
+            self.api_logger.info('Text mining job: Trail white spaces.')
             df[text_col] = df[text_col].apply(lambda r: self.trail_ws(r))
             if len(stopw) > 0:
+                self.api_logger.info('Text mining job: Remove stop words')
                 df[text_col] = df[text_col].apply(lambda r: self.remove_stops(r, stopw))
-            df[text_col] = df[text_col].apply(lambda r: self.lemmatize(r))
+            #Slows the speed x10...
+            #self.api_logger.info('Text mining job: Lemmatization.')
+            #df[text_col] = df[text_col].apply(lambda r: self.lemmatize(r))
+            self.api_logger.info('Text mining job: Remove accents.')
             df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
+            self.api_logger.info('Text mining job: Remove duplicated words.')
+            df[text_col] = df[text_col].apply(lambda r: ' '.join(list(set(r.split()))))
 
             # Filter empty tweets:
             df = df[df[text_col] != '']
@@ -748,7 +763,7 @@ class DatabaseCreation:
             
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, date_col = None, sent_col = None)
-            #df = self.get_ecotweets(df, ecolist, 'text')
+            df = self.get_ecotweets(df, ecolist, text_col = 'text')
 
             if df.shape[0] > 0:
 
@@ -897,7 +912,7 @@ class DatabaseCreation:
                     df = pd.json_normalize(json.load(f))
                     self.api_logger.info('Data job: Treat corpus text column.')
                     df = self.treat_text(df, 'content', stopw)
-                    #df = self.get_ecotweets(df, ecolist, 'content')
+                    df = self.get_ecotweets(df, ecolist, text_col = 'content')
                     self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
