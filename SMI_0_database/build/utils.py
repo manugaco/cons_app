@@ -748,7 +748,7 @@ class DatabaseCreation:
             
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, date_col = None, sent_col = None)
-            df = self.get_ecotweets(df, ecolist, 'text')
+            #df = self.get_ecotweets(df, ecolist, 'text')
 
             if df.shape[0] > 0:
 
@@ -914,8 +914,6 @@ class DatabaseCreation:
 
             self.api_logger.info('Data job: Corpus file not found, please provide a corpus json file.')
             self.api_logger.exception(error)
-
-
 
     def insert_tweets(self, temp_data_path, stopw, ecolist):
         '''
