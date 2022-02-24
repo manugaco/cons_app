@@ -8,6 +8,8 @@ import os
 import json
 
 from bs4 import BeautifulSoup
+import spacy
+nlp = spacy.load('es_core_news_sm')
 
 class DatabaseCreation:
     '''
@@ -444,7 +446,7 @@ class DatabaseCreation:
 
     ## USERS FUNCTIONS:
 
-    def text_clean_loc(self, name):
+    def accent_rem(self, name):
         '''
         Function to remove accents from an alphanumeric string:
         params:
@@ -489,7 +491,7 @@ class DatabaseCreation:
         try:
 
             # Adapt location string
-            df['location'] = df['location'].apply(lambda r: self.text_clean_loc(r.lower().replace(',', '')))
+            df['location'] = df['location'].apply(lambda r: self.accent_rem(r.lower().replace(',', '')))
 
             # Filter location:
             df = df[df['location'].isin(munlist)]
@@ -548,41 +550,189 @@ class DatabaseCreation:
 
     ## TEXT TREATMENT FUNCTIONS:
 
-    def treat_text(self, df, text_col, date_col = 'date', sent_col = 'sentiment'):
+    def get_stops(self, path, stops):
         '''
-        Function to treat the corpus columns:
+        Function to load and treat stopwords.
+        params:
+            - path: route where the stopwords files would be.
+            - stops: list of the files containing stopwords.
+        output: stopwords list treated.
+        '''
+        try:
+
+            with open(path + stops[0]) as f:
+                stopw_1 = f.read().splitlines()
+            with open(path + stops[1]) as f:
+                stopw_2 = f.read().splitlines()
+
+            stopw_1[0] = stopw_1[0].replace('\ufeff', '')
+            stopw = stopw_1 + stopw_2
+            stopw = [self.accent_rem(word) for word in stopw]
+            return(stopw)
+        
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def get_ecofilter(self, path, files):
+        '''
+        Function to get the list of words to filter the tweets
+        params:
+            - path: route where the filtering list files would be.
+            - files: list of the files containing filtering words (if there are many).
+        '''
+        try:
+
+            eco_filter = pd.DataFrame()
+            for file in files:
+                eco_filter = pd.concat([eco_filter, pd.read_excel(path + file, header=None)], axis=0)
+            eco_filter.drop_duplicates(inplace=True)
+            eco_filter = eco_filter.iloc[:,0].to_list()
+            return [self.lemmatize(self.accent_rem(word)).lower() for word in eco_filter]
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def remove_stops(self, tweet, stopw):
+        '''
+        Function to remove stopwords from a document (text string).
+        params:
+            - tweet: the document itself.
+            - stopw: list of stopwords.
+        output: document without stopwords.
+        '''
+        try:
+
+            tweet_clean = ' '.join([word for word in tweet.split() if not word in stopw])
+            return tweet_clean
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def filter_noneco(self, tweet, ecolist):
+        '''
+        Function to check whether the tweet has economic topic or not:
+        params:
+            - tweet: the document itself.
+            - ecolist: list of words related to economy and politics.
+        output: the tweets if it contains at least one word in the ecolist.
+        '''
+        try:
+            commons = list(set(ecolist).intersection(tweet))
+            if len(commons) <= 1:
+                tweet = ''
+            return tweet
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def get_ecotweets(self, df, ecolist, text_col = 'text'):
+        '''
+        Function to 
+        '''
+        try:
+            df[text_col] = df[text_col].apply(lambda r: self.filter_noneco(r, ecolist))
+            df = df[df[text_col] != '']
+            
+            return(df)
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def lemmatize(self, tweet):
+        '''
+        Function to transform words into lemmas.
+        params:
+            . tweet: the document itself.
+        output: document with lemmas instead.
+        '''
+        try:
+
+            doc = nlp(tweet)
+            lemmas = [tok.lemma_.lower() for tok in doc]
+            return ' '.join(lemmas)
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def trail_ws(self, tweet):
+        '''
+        Function to trail more than one whitespace.
+        params:
+            - tweet: the document itself.
+        output: document whitespaces of length one.
+        '''
+        try:
+
+            tweet_clean = re.sub(' +', ' ', tweet)
+            return tweet_clean
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def remove_num(self, tweet):
+        '''
+        Function to remove numbers from a document.
+        params:
+            - tweet: the document itself.
+        output: document without numbers.
+        '''
+        try:
+
+            tweet_clean = ''.join([i for i in tweet if not i.isdigit()])
+            return tweet_clean
+
+        except Exception as error:
+
+            self.api_logger.exception(error)
+
+    def treat_text(self, df, text_col, stopw = [],
+    date_col = 'date', sent_col = 'sentiment'):
+        '''
+        Function to treat text columns:
         params:
             - df: dataframe to treat.
+            - text_col: name of the text columns to treat.
+            - ecolist
         Output: Dataframe treated.
         '''
         try:
 
             # Sanity checks :
             df = df.fillna('')
-            df = df[df[text_col] != '']
             
             # Formatting corpus columns:
-
             if date_col == 'date':
                 df[date_col] = pd.to_datetime(df[date_col])
             if sent_col == 'sentiment':
                 df[sent_col] = df[sent_col].replace(',','', regex=True)
 
             #Columns treatment:
-
-            df[text_col] = df[text_col].replace(',','', regex=True)
-            df[text_col] = df[text_col].replace('"','', regex=True)
-            df[text_col] = df[text_col].replace(r'\\',' ', regex=True)
-            df[text_col] = df[text_col].replace(r'\r+|\n+|\t+','', regex=True)
+            df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
             df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
+            df[text_col] = df[text_col].apply(lambda r: r.lower())
+            df[text_col] = df[text_col].apply(lambda r: self.remove_num(r))
+            df[text_col] = df[text_col].apply(lambda r: self.trail_ws(r))
+            if len(stopw) > 0:
+                df[text_col] = df[text_col].apply(lambda r: self.remove_stops(r, stopw))
+            df[text_col] = df[text_col].apply(lambda r: self.lemmatize(r))
+            df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
 
+            # Filter empty tweets:
+            df = df[df[text_col] != '']
+            
             return(df)
             
         except Exception as error:
 
             self.api_logger.exception(error)
 
-    def format_tweets_input(self, path, dir, file):
+    def format_tweets_input(self, path, dir, file, stopw, ecolist):
         '''
         Function to insert tweets on database after format them from 
         a backup json file inside a directory recursively.
@@ -597,11 +747,15 @@ class DatabaseCreation:
                 df = pd.DataFrame(json.load(f))
             
             # Once the file is loaded, the tweets are treated.
-            df = self.treat_text(df, "text", date_col = None, sent_col = None)
+            df = self.treat_text(df, 'text', stopw, date_col = None, sent_col = None)
+            df = self.get_ecotweets(df, ecolist, 'text')
 
-            # Once the text is treated, it is persisted on the database.
-            df = df[['username', 'date', 'text']]
-            self.df_to_postgres(df, 'smi_tweets')
+            if df.shape[0] > 0:
+
+                df = df[df["text"] != '']
+                # Once the text is treated, it is persisted on the database.
+                df = df[['username', 'date', 'text']]
+                self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
             print(error)
@@ -722,7 +876,7 @@ class DatabaseCreation:
 
                 self.api_logger.exception(error)
 
-    def insert_corpus(self, temp_data_path):
+    def insert_corpus(self, temp_data_path, stopw, ecolist):
         '''
         Function to insert corpus into DB.
         params: self referenced, no params.
@@ -741,9 +895,10 @@ class DatabaseCreation:
 
                     self.api_logger.info('Data job: Retrieve corpus file.')
                     df = pd.json_normalize(json.load(f))
-                    self.api_logger.info('Data job: Treat text column.')
-                    df = self.treat_text(df, 'content')
-                    self.api_logger.info('Data job: Text column treated.')
+                    self.api_logger.info('Data job: Treat corpus text column.')
+                    df = self.treat_text(df, 'content', stopw)
+                    df = self.get_ecotweets(df, ecolist, 'text')
+                    self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
                     self.api_logger.info('Data job: Drop duplicates of corpus: ' + str(df.shape[0]) + ' observations.')
@@ -762,7 +917,7 @@ class DatabaseCreation:
 
 
 
-    def insert_tweets(self, temp_data_path):
+    def insert_tweets(self, temp_data_path, stopw, ecolist):
         '''
         Function to insert tweets into DB.
         params: self referenced, no params.
@@ -781,7 +936,7 @@ class DatabaseCreation:
                     files = os.listdir(path_tweets + dire + '/')
                     for file in files:
                         self.api_logger.info('Database job: Inserting file on DB: ' + file)
-                        self.format_tweets_input(path_tweets, dire, file)
+                        self.format_tweets_input(path_tweets, dire, file, stopw, ecolist)
                         self.api_logger.info('Database job: File inserted on DB: ' + file)
                     
             else:

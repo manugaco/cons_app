@@ -3,7 +3,9 @@
 FROM python:3.8.10
 COPY requirements.txt home/app/db_creation/
 RUN pip install lxml
+RUN pip install openpyxl
 RUN pip install -r home/app/db_creation/requirements.txt
+RUN python3 -m spacy download es_core_news_sm
 COPY build/ /home/app/db_creation/
 WORKDIR /home/app/db_creation/
 CMD ["python3", "db_creation.py"]

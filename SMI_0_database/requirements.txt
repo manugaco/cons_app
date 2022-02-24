@@ -10,3 +10,6 @@ requests==2.22.0
 requests-oauthlib==1.3.0
 requests-unixsocket==0.2.0
 scikit-learn==1.0.2
+spacy==3.2.1
+spacy-legacy==3.0.8
+spacy-loggers==1.0.1
