@@ -897,7 +897,7 @@ class DatabaseCreation:
                     df = pd.json_normalize(json.load(f))
                     self.api_logger.info('Data job: Treat corpus text column.')
                     df = self.treat_text(df, 'content', stopw)
-                    df = self.get_ecotweets(df, ecolist, 'text')
+                    #df = self.get_ecotweets(df, ecolist, 'content')
                     self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
