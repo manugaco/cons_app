@@ -617,7 +617,7 @@ class DatabaseCreation:
         output: the tweets if it contains at least one word in the ecolist.
         '''
         try:
-            commons = [word for word in ecolist if word in tweet]
+            commons = [word for word in ecolist if word in tweet and (len(word) > 1 or len(word) < 16)]
             if len(commons) <= 1:
                 tweet = ''
             return tweet
@@ -713,6 +713,8 @@ class DatabaseCreation:
                 df[sent_col] = df[sent_col].apply(lambda r: r.split('DI')[0])
 
             #Columns treatment:
+            self.api_logger.info('Text mining job: Remove urls.')
+            df[text_col] = df[text_col].apply(lambda r: re.sub(r'http\S+', '', r))
             self.api_logger.info('Text mining job: Remove accents.')
             df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
             self.api_logger.info('Text mining job: Remove special characters.')
@@ -726,7 +728,6 @@ class DatabaseCreation:
             if len(stopw) > 0:
                 self.api_logger.info('Text mining job: Remove stop words')
                 df[text_col] = df[text_col].apply(lambda r: self.remove_stops(r, stopw))
-            #Slows the speed x10...
             #self.api_logger.info('Text mining job: Lemmatization.')
             #df[text_col] = df[text_col].apply(lambda r: self.lemmatize(r))
             self.api_logger.info('Text mining job: Remove accents.')
@@ -759,6 +760,7 @@ class DatabaseCreation:
             
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, date_col = None, sent_col = None)
+            self.api_logger.info('Text mining job: Filter text column with ecolist.')
             df = self.get_ecotweets(df, ecolist, text_col = 'text')
 
             if df.shape[0] > 0:
@@ -899,6 +901,7 @@ class DatabaseCreation:
                     df = pd.json_normalize(json.load(f))
                     self.api_logger.info('Data job: Treat corpus text column.')
                     df = self.treat_text(df, 'content', stopw)
+                    self.api_logger.info('Text mining job: Filter corpus text column with ecolist.')
                     df = self.get_ecotweets(df, ecolist, text_col = 'content')
                     self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
