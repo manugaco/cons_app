@@ -53,8 +53,8 @@ class DatabaseCreation:
         params:
             - path: relative path to the file.
         """
+        # Read the SQL query from .sql file:
         with open(path, 'r') as f:
-
             query = f.read().format(schema = self.schema)
         cur = self.conn.cursor()
 
@@ -77,15 +77,11 @@ class DatabaseCreation:
         """
         # Read the SQL query from .sql file:
         with open(path, 'r') as f: 
-
             query = f.read().format(schema=self.schema)
-
-        # Initialize SQL cursor:
         cur = self.conn.cursor()
 
         try:
-            
-            #Execute query
+
             cur.execute(query)
             db_fetch = cur.fetchall()
 
@@ -105,6 +101,7 @@ class DatabaseCreation:
         params:
             - path: relative path to the file.
         """
+        # Read the SQL query from .sql file:
         with open(path, 'r') as f:
             query = f.read().format(schema=self.schema)
         cur = self.conn.cursor()
@@ -132,12 +129,11 @@ class DatabaseCreation:
         buffer = StringIO()
         df.to_csv(buffer, header=False, index=False)
         buffer.seek(0)
-
-        #Copy cached dataframe into postgres:
         cur = self.conn.cursor()
 
         try:
 
+            #Copy cached dataframe into postgres:
             cur.copy_from(buffer, table, sep=",")
             self.conn.commit()
 
@@ -843,49 +839,36 @@ class DatabaseCreation:
         '''
         try:
 
-            self.api_logger.info('Database job: Check users table screenName.')
-            db_usr_ls = self.fetchall_SQL(self.queries_path + 'SMI_usrs_database_screenName.sql')
-            self.api_logger.info('Data job: Check users backup screenName.')
-            path_usr = temp_data_path + 'get_users/db_users_' + db_users_bkp + '.json'
-            df_usr, df_usr_ls, df_usr_check = self.backup_check(path_usr, db_munlist, kind = 'users')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
+            self.api_logger.info('Database job: Number of observations of users table: ' + str(n_obs))
 
-            if df_usr_check:
+            if n_obs == 0:
                 
-                if (len(db_usr_ls) == 0):
+                # Check users table:
+                self.api_logger.info('Database job: Users table in DB is empty.')
+                self.api_logger.info('Data job: Get users backup.')
+                path_usr = temp_data_path + 'get_users/db_users_' + db_users_bkp + '.json'
+                df_usr, df_usr_ls, df_usr_check = self.backup_check(path_usr, db_munlist, kind = 'users')
+                
+                if df_usr_check:
 
-                    self.api_logger.info('Database job: Users table is empty.')
-                    self.api_logger.info('Database job: Insert users backup into DB.')
+                    # Initial users table insertion:
+                    self.api_logger.info('Database job: Users back into DB.')
                     self.df_to_postgres(df_usr, self.users_table)
+                    self.api_logger.info('Database job: Users table inserted on DB.')
+
+                    self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
+                    n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
+                    self.api_logger.info('Database job: Number of observations in the users table on DB after droping duplicates: ' + str(n_obs))
 
                 else:
 
-                    self.api_logger.info('Database job: Users table is not empty.')
-                    self.api_logger.info('Data job: Compare users on db and backup.')
+                    self.api_logger.info('Database job: There is not users backup available.')
 
-                    df_usr_ls.sort()
-                    db_usr_ls.sort()
-                    
-                    if df_usr_ls == db_usr_ls:
+            else:
 
-                        self.api_logger.info('Data job: Users match.')
-
-                    else:
-
-                        self.api_logger.info('Database job: Users do not match.')
-                        if len(df_usr_ls) > len(db_usr_ls):
-                            #Create initial users table:
-                            self.api_logger.info('Database job: Creating users table on DB.')
-                            self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
-                        
-                            #Initial users table insertion:
-                            self.api_logger.info('Database job: Users back into DB.')
-                            self.df_to_postgres(df_usr, self.users_table)
-                            self.api_logger.info('Database job: Users table inserted on DB.')
-
-                self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
-                self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
-                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
-                self.api_logger.info('Database job: Number of observations in the users table after droping duplicates: ' + str(n_obs))
+                self.api_logger.info('Database job: Users table already filled.')
 
         except Exception as error:
 
@@ -894,7 +877,11 @@ class DatabaseCreation:
     def insert_corpus(self, temp_data_path, stopw, ecolist):
         '''
         Function to insert corpus into DB.
-        params: self referenced, no params.
+        params:
+            - temp_data_path: path to data folder.
+            - stopw: list with stop words to remove.
+            - ecolist: list of terms which a tweet must contain at least one.
+        output: No output, the results are persisted directly into DB.
         '''
         try:
 
