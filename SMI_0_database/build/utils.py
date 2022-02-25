@@ -621,7 +621,7 @@ class DatabaseCreation:
         output: the tweets if it contains at least one word in the ecolist.
         '''
         try:
-            commons = [word for word in tweet.split() if word in ecolist]
+            commons = [word for word in ecolist if word in tweet]
             if len(commons) <= 1:
                 tweet = ''
             return tweet
