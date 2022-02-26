@@ -652,10 +652,12 @@ class DatabaseCreation:
                 df[sent_col] = df[sent_col].apply(lambda r: r.split('DI')[0])
 
             #Column text treatment:
+            self.api_logger.info('Text mining job: Treat text column.')
             df[text_col] = df[text_col].fillna(' ')
             df[text_col] = df[text_col].apply(lambda r: self.tweet_cleaner(r, stopw, ecol))
             df = df[df[text_col] != '']
-            df = df[['username', 'date', 'text']]
+            if text_col == 'text':
+                df = df[['username', 'date', 'text']]
             df = df.reset_index(drop=True)
             return(df)
             
