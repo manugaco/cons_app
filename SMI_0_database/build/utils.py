@@ -591,104 +591,43 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def remove_stops(self, tweet, stopw):
+    def tweet_cleaner(self, tweet, stopw, ecol):
         '''
-        Function to remove stopwords from a document (text string).
+        Function to treat the text of a tweet.
         params:
             - tweet: the document itself.
-            - stopw: list of stopwords.
-        output: document without stopwords.
+        output: the tweet cleaned.
         '''
-        try:
+        # Remove urls (http in advance)
+        tweet = re.sub(r'http.*',"", tweet)
+        tweet = re.sub(r'pic.twitter\S+', '', tweet)
+        # Remove mentions and hastags.
+        tweet = re.sub(r'#\S+', '', tweet)
+        tweet = re.sub(r'@\S+', '', tweet)
+        # Remove spanish vowel accents.
+        tweet = ' '.join([self.accent_rem(word) for word in tweet.split()])
+        # Remove special characters.
+        tweet = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)"," ", tweet).split())
+        # Lower captions.
+        tweet = tweet.lower()
+        # Remove numbers.
+        tweet = ''.join([i for i in tweet if not i.isdigit()])
+        # Remove white spaces.
+        tweet = re.sub(' +', ' ', tweet)
+        # Remove stopwords.
+        tweet = ' '.join([word for word in tweet.split() if not word in stopw])
+        # Filter words length (<1 and >15).
+        tweet = ' '.join([word for word in tweet.split() if len(word) > 1 and len(word) <= 15])
+        # Filter ecolist.
+        commons = [word for word in ecol if word in tweet]
+        if len(commons) < 1:
+            tweet = ''
+        #if len(tweet) > 1:
+        #   #Lemmatize:
+        #    tweet = ' '.join([tok.lemma_.lower() for tok in nlp(tweet)])
+        return tweet
 
-            tweet_clean = ' '.join([word for word in tweet.split() if not word in stopw])
-            return tweet_clean
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def filter_noneco(self, tweet, ecolist):
-        '''
-        Function to check whether the tweet has economic topic or not:
-        params:
-            - tweet: the document itself.
-            - ecolist: list of words related to economy and politics.
-        output: the tweets if it contains at least one word in the ecolist.
-        '''
-        try:
-            commons = [word for word in ecolist if word in tweet and (len(word) > 1 or len(word) < 16)]
-            if len(commons) <= 1:
-                tweet = ''
-            return tweet
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def get_ecotweets(self, df, ecolist, text_col = 'text'):
-        '''
-        Function to 
-        '''
-        try:
-            df[text_col] = df[text_col].apply(lambda r: self.filter_noneco(r, ecolist))
-            df = df[df[text_col] != '']
-            
-            return(df)
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def lemmatize(self, tweet):
-        '''
-        Function to transform words into lemmas.
-        params:
-            . tweet: the document itself.
-        output: document with lemmas instead.
-        '''
-        try:
-
-            doc = nlp(tweet)
-            lemmas = [tok.lemma_.lower() for tok in doc]
-            return ' '.join(lemmas)
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def trail_ws(self, tweet):
-        '''
-        Function to trail more than one whitespace.
-        params:
-            - tweet: the document itself.
-        output: document whitespaces of length one.
-        '''
-        try:
-
-            tweet_clean = re.sub(' +', ' ', tweet)
-            return tweet_clean
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def remove_num(self, tweet):
-        '''
-        Function to remove numbers from a document.
-        params:
-            - tweet: the document itself.
-        output: document without numbers.
-        '''
-        try:
-
-            tweet_clean = ''.join([i for i in tweet if not i.isdigit()])
-            return tweet_clean
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def treat_text(self, df, text_col, stopw = [], date_col = 'date', sent_col = 'sentiment'):
+    def treat_text(self, df, text_col, stopw = [], ecol =[], date_col = 'date', sent_col = 'sentiment'):
         '''
         Function to treat text columns:
         params:
@@ -712,32 +651,12 @@ class DatabaseCreation:
                 df[sent_col] = df[sent_col].apply(lambda r: r.split('AGREEMENT')[0])
                 df[sent_col] = df[sent_col].apply(lambda r: r.split('DI')[0])
 
-            #Columns treatment:
-            self.api_logger.info('Text mining job: Remove urls.')
-            df[text_col] = df[text_col].apply(lambda r: re.sub(r'http\S+', '', r))
-            self.api_logger.info('Text mining job: Remove accents.')
-            df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
-            self.api_logger.info('Text mining job: Remove special characters.')
-            df[text_col] = df[text_col].apply(lambda r: ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", r).split()))
-            self.api_logger.info('Text mining job: Low case words.')
-            df[text_col] = df[text_col].apply(lambda r: r.lower())
-            self.api_logger.info('Text mining job: Remove numbers.')
-            df[text_col] = df[text_col].apply(lambda r: self.remove_num(r))
-            self.api_logger.info('Text mining job: Trail white spaces.')
-            df[text_col] = df[text_col].apply(lambda r: self.trail_ws(r))
-            if len(stopw) > 0:
-                self.api_logger.info('Text mining job: Remove stop words')
-                df[text_col] = df[text_col].apply(lambda r: self.remove_stops(r, stopw))
-            #self.api_logger.info('Text mining job: Lemmatization.')
-            #df[text_col] = df[text_col].apply(lambda r: self.lemmatize(r))
-            self.api_logger.info('Text mining job: Remove accents.')
-            df[text_col] = df[text_col].apply(lambda r: ' '.join([self.accent_rem(name) for name in r.split()]))
-            self.api_logger.info('Text mining job: Remove duplicated words.')
-            df[text_col] = df[text_col].apply(lambda r: ' '.join(list(set(r.split()))))
-
-            # Filter empty tweets:
+            #Column text treatment:
+            df[text_col] = df[text_col].fillna(' ')
+            df[text_col] = df[text_col].apply(lambda r: self.tweet_cleaner(r, stopw, ecol))
             df = df[df[text_col] != '']
-            
+            df = df[['username', 'date', 'text']]
+            df = df.reset_index(drop=True)
             return(df)
             
         except Exception as error:
@@ -759,9 +678,7 @@ class DatabaseCreation:
                 df = pd.DataFrame(json.load(f))
             
             # Once the file is loaded, the tweets are treated.
-            df = self.treat_text(df, 'text', stopw, date_col = None, sent_col = None)
-            self.api_logger.info('Text mining job: Filter text column with ecolist.')
-            df = self.get_ecotweets(df, ecolist, text_col = 'text')
+            df = self.treat_text(df, 'text', stopw, ecolist, date_col = None, sent_col = None)
 
             if df.shape[0] > 0:
 
@@ -900,9 +817,7 @@ class DatabaseCreation:
                     self.api_logger.info('Data job: Retrieve corpus file.')
                     df = pd.json_normalize(json.load(f))
                     self.api_logger.info('Data job: Treat corpus text column.')
-                    df = self.treat_text(df, 'content', stopw)
-                    self.api_logger.info('Text mining job: Filter corpus text column with ecolist.')
-                    df = self.get_ecotweets(df, ecolist, text_col = 'content')
+                    df = self.treat_text(df, 'content', stopw, ecolist)
                     self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
