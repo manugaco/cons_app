@@ -1,55 +1,41 @@
 -- Create main schema: 
-
 create schema smi_schema;
 
--- Create initial users table:
-
-create table smi_schema.smi_initial_users (
-	
-    "screenName" varchar NOT NULL,
-    "followersCount" numeric,
-    "follows" numeric,
-    "nTweets" numeric,
-    "tweetsSince" date,
-    "lastTweet" date,
-    "category" varchar
-
-);
-
 -- Create users table:
-
 create table smi_schema.smi_users (
-    "id" varchar NOT NULL,
-    "screenName" varchar NOT NULL,
-    "followersCount" numeric,
-    "friendsCount" numeric,
-    "protected" boolean,
-    "location" varchar,
-    "lang" varchar,
-    "ff_lookup" boolean
+    "smi_str_userid" varchar NOT NULL,
+    "smi_str_username" varchar NOT NULL,
+    "smi_int_followers" numeric,
+    "smi_int_friends" numeric,
+    "smi_bool_protected" boolean,
+    "smi_str_location" varchar,
+    "smi_str_lang" varchar,
+    "smi_str_lastlookup" varchar
 );
 
 -- Create municipalities table:
-
 create table smi_schema.smi_munlist (
-    "location" varchar NOT NULL
+    "smi_str_location" varchar NOT NULL
 );
 
 -- Create corpus table:
-
 create table smi_schema.smi_corpus (
-    "tweetid" varchar NOT NULL,
-    "user" varchar NOT NULL,
-    "content" varchar,
-    "date" varchar,
-    "lang" varchar,
-    "sentiment" varchar
+    "smi_str_username" varchar NOT NULL,
+    "smi_ts_date" varchar,
+    "smi_str_tweet" varchar,
+    "smi_str_sentiment" varchar
 );
 
 -- Create tweets table:
-
 create table smi_schema.smi_tweets (
-    "username" varchar NOT NULL,
-    "date" timestamp,
-    "text" varchar
+    "smi_str_username" varchar NOT NULL,
+    "smi_ts_date" timestamp,
+    "smi_str_tweet" varchar
+);
+-- Create dates of tweets retrieved on 
+
+create table smi_schema.smi_date_tweets (
+    "smi_str_username" varchar NOT NULL,
+    "smi_str_datetweets" varchar,
+    primary key(smi_str_username)
 );

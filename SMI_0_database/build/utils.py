@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime as dt
 import re
 import requests
 import psycopg2
@@ -20,10 +21,10 @@ class DatabaseCreation:
                 conn,
                 schema,
                 api_logger,
+                api,
                 urls,
                 headers,
                 ini_users_dict,
-                initial_users_table,
                 users_table,
                 corpus_table,
                 munlist_table
@@ -34,13 +35,13 @@ class DatabaseCreation:
         self.conn = conn
         self.cur = conn.cursor()
         self.schema = schema
+        self.api = api
         self.api_logger = api_logger
 
         #Global parameters
         self.url = urls
         self.header = headers
         self.ini_users_dict = ini_users_dict
-        self.initial_users_table = initial_users_table
         self.users_table = users_table
         self.corpus_table = corpus_table
         self.munlist_table = munlist_table
@@ -59,12 +60,10 @@ class DatabaseCreation:
         cur = self.conn.cursor()
 
         try:
-
             cur.execute(query)
             return(cur.fetchone()[0])
 
         except (Exception, psycopg2.DatabaseError) as error:
-
             self.conn.rollback()
             cur.close()
             self.api_logger.exception(error) 
@@ -81,7 +80,6 @@ class DatabaseCreation:
         cur = self.conn.cursor()
 
         try:
-
             cur.execute(query)
             db_fetch = cur.fetchall()
 
@@ -107,11 +105,9 @@ class DatabaseCreation:
         cur = self.conn.cursor()
 
         try:
-
             cur.execute(query)
 
         except (Exception, psycopg2.DatabaseError) as error:
-
             self.conn.rollback()
             self.api_logger.exception(error)
 
@@ -132,13 +128,11 @@ class DatabaseCreation:
         cur = self.conn.cursor()
 
         try:
-
             #Copy cached dataframe into postgres:
             cur.copy_from(buffer, table, sep=",")
             self.conn.commit()
 
         except (Exception, psycopg2.DatabaseError) as error:
-
             self.conn.rollback()
             cur.close()
             self.api_logger.exception(error)
@@ -153,32 +147,13 @@ class DatabaseCreation:
         params: selft referenced, no params.
         '''
         try:
-
             # Check if the schema exists.
             self.api_logger.info('Database job: Check if SMI schema exists.')
-            schema_check = self.fetchone_SQL(self.queries_path + 'SMI_schema_check.sql')
+            schema_check = self.fetchone_SQL(self.queries_path + 'SMI_coldstart_schema_check.sql')
 
             # If schema exist, check tables.
             if schema_check:
-
                 self.api_logger.info('Database job: SMI schema exists on DB.')
-
-                ## Check initial users table.
-                self.api_logger.info('Database job: Check if initial users table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_ini_users_check.sql')
-
-                # If exists, do nothing.
-                if db_ini_check:
-
-                    self.api_logger.info('Database job: Initial users table exist on DB.')
-
-                # If it does not exist, create initial users table.
-                else:
-
-                    self.api_logger.info('Database job: Initial users table does not exist on DB.')
-                    self.api_logger.info('Database job: Creating initial users table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_ini_users_table_creation.sql')
-                    self.api_logger.info('Database job: Initial users table created on DB.')
 
                 ## Check users table.
                 self.api_logger.info('Database job: Check if users table exist on DB.')
@@ -186,12 +161,10 @@ class DatabaseCreation:
 
                 #If exists, do nothing.
                 if db_usr_check:
-
                     self.api_logger.info('Database job: Users table exist on DB.')
 
                 #If it does not exist, create users table.
                 else:
-
                     self.api_logger.info('Database job: Users table does not exist on DB.')
                     self.api_logger.info('Database job: Creating users table on DB.')
                     self.query_SQL(self.queries_path + 'SMI_usrs_table_creation.sql')
@@ -199,16 +172,14 @@ class DatabaseCreation:
 
                 ## Check corpus table.
                 self.api_logger.info('Database job: Check if corpus table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_table_check.sql')
+                db_corpus_check = self.fetchone_SQL(self.queries_path + 'SMI_corpus_table_check.sql')
 
                 # If exists, do nothing.
-                if db_ini_check:
-
+                if db_corpus_check:
                     self.api_logger.info('Database job: Corpus table exist on DB.')
 
                 # If it does not exist, create corpus table.
                 else:
-
                     self.api_logger.info('Database job: Corpus table does not exist on DB.')
                     self.api_logger.info('Database job: Creating corpus table on DB.')
                     self.query_SQL(self.queries_path + 'SMI_corpus_table_creation.sql')
@@ -216,16 +187,14 @@ class DatabaseCreation:
 
                 ## Check munlist table.
                 self.api_logger.info('Database job: Check if municipalities table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_munlist_table_check.sql')
+                db_munlist_check = self.fetchone_SQL(self.queries_path + 'SMI_munlist_table_check.sql')
 
                 # If exists, do nothing.
-                if db_ini_check:
-
+                if db_munlist_check:
                     self.api_logger.info('Database job: Municipalities table exist on DB.')
 
                 # If it does not exist, create munlist table.
                 else:
-
                     self.api_logger.info('Database job: Municipalities table does not exist on DB.')
                     self.api_logger.info('Database job: Creating municipalities table on DB.')
                     self.query_SQL(self.queries_path + 'SMI_munlist_table_creation.sql')
@@ -233,16 +202,14 @@ class DatabaseCreation:
 
                 ## Check tweets table.
                 self.api_logger.info('Database job: Check if tweets table exist on DB.')
-                db_ini_check = self.fetchone_SQL(self.queries_path + 'SMI_tweets_table_check.sql')
+                db_tweets_check = self.fetchone_SQL(self.queries_path + 'SMI_tweets_table_check.sql')
 
                 # If exists, do nothing.
-                if db_ini_check:
-
+                if db_tweets_check:
                     self.api_logger.info('Database job: Tweets table exist on DB.')
 
                 # If it does not exist, create tweets table.
                 else:
-
                     self.api_logger.info('Database job: Tweets table does not exist on DB.')
                     self.api_logger.info('Database job: Creating tweets table on DB.')
                     self.query_SQL(self.queries_path + 'SMI_tweets_table_creation.sql')
@@ -257,7 +224,6 @@ class DatabaseCreation:
                 self.api_logger.info('Database job: DB schema and tables created.')
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     ## INITIAL USERS FUNCTIONS:
@@ -293,7 +259,6 @@ class DatabaseCreation:
             return(df)
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     def get_user(self, input):
@@ -315,7 +280,6 @@ class DatabaseCreation:
             return(substring)
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     def get_n(self, input):
@@ -337,7 +301,6 @@ class DatabaseCreation:
             return(substring.replace(',', ''))
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     def get_initial_users_table(self, url, header):
@@ -358,20 +321,15 @@ class DatabaseCreation:
 
             #Clean columns:
             for col in cols:
-
                 if col == 'Twittero':
-
                     users = [self.get_user(info[col][i]) for i in range(info.shape[0])]
                     info[col] = users
-
                 else:
-
                     info[col] = [self.get_n(info[col][i]) for i in range(info.shape[0])]
 
             return(info)
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     def get_tw_users_list(self):
@@ -384,12 +342,10 @@ class DatabaseCreation:
         '''
         #Get all users from tables of different sections:
         try:
-
             users = []
             df_out = pd.DataFrame()
 
             for i in range(len(self.url)):
-                
                 #Create users dataframe and users list:
                 df = self.get_initial_users_table(self.url[i][0], self.header)
                 df_out = pd.concat([df_out, df], axis=0).reset_index(drop=True)
@@ -397,10 +353,8 @@ class DatabaseCreation:
 
             #Drop duplicates:
             if len(users) != len(set(users)):
-
                 users = list(set(users))
                 df_out = df_out.drop_duplicates().reset_index(drop=True)
-
             #Formating columns:
             df_out.columns = [key for key in list(self.ini_users_dict.keys())]
             df_out = df_out.astype(self.ini_users_dict)
@@ -415,7 +369,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
 
-    def scrap_users(self, temp_data_path, db_today):
+    def scrap_users(self, temp_data_path, db_today, db_munlist):
         '''
         Function to scrap initial users from url:
         params: self referenced, no params.
@@ -423,21 +377,63 @@ class DatabaseCreation:
         try:
 
             # Scrap ini users, create backup and fill database table:
-            self.api_logger.info('Scraping job: Retrieve initial users from url.')
             df = self.get_tw_users_list()
-            self.api_logger.info('Scraping job: Initial users from url retrieved.')
             
+            # Treat users:
+            self.api_logger.info('Data job: Treat initial users.')
+            df_ini_list = df['screenName'].tolist()
+            df_users = pd.DataFrame(columns=['smi_str_userid', 
+                                 'smi_str_usersname', 
+                                 'smi_int_followers', 
+                                 'smi_int_friends', 
+                                 'smi_bool_protected',
+                                 'smi_str_location',
+                                 'smi_str_lang'])
+
+        except Exception as error:
+            self.api_logger.exception(error)
+
+        for user in df_ini_list:
+            try:
+                user_obj = self.api.get_user(screen_name = user)
+                df_users = pd.concat([df_users, 
+                                pd.DataFrame([[user_obj.id, 
+                                                user_obj.screen_name, 
+                                                user_obj.followers_count,
+                                                user_obj.friends_count,
+                                                user_obj.protected,
+                                                user_obj.location,
+                                                user_obj.lang]], columns=['smi_str_userid', 
+                                                                        'smi_str_usersname', 
+                                                                        'smi_int_followers', 
+                                                                        'smi_int_friends', 
+                                                                        'smi_bool_protected',
+                                                                        'smi_str_location',
+                                                                        'smi_str_lang'])], axis=0)
+
+            except Exception as error:
+                pass
+
+        try:
+            df = df_users.reset_index(drop=True)
+            df['smi_str_lastlookup'] = ''
+
+            self.api_logger.info('Data job: Initial users treated.')
+
+            self.api_logger.info('Data job: Filter users by location.')
+            # Filter by location:
+            df = self.filter_usrs_loc(df, 'smi_str_location', db_munlist)
+
             # Save initial users to backup:
-            self.api_logger.info('Scraping job: Save initial users to json backup.')
-            df.to_json(temp_data_path + 'get_users/db_ini_users_' + db_today + '.json', orient='records', date_format='iso')
+            self.api_logger.info('Data job: Save initial users to json backup.')
+            df.to_json(temp_data_path + 'get_users/db_users_' + db_today + '.json', orient='records', date_format='iso')
             
             # Store initial users on DB:
             self.api_logger.info('Database job: Insert initial users on DB.')
-            self.df_to_postgres(df, self.initial_users_table)
+            self.df_to_postgres(df, self.users_table)
             self.api_logger.info('Database job: Initial users inserted on DB.')
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
     ## USERS FUNCTIONS:
@@ -476,7 +472,7 @@ class DatabaseCreation:
         except Exception as error:
             self.api_logger.exception(error)
 
-    def filter_usrs_loc(self, df, munlist):
+    def filter_usrs_loc(self, df, loc_column, munlist):
         '''
         Function to filter the location field given a municipalities list, to ensure spanish users:
         params:
@@ -485,60 +481,64 @@ class DatabaseCreation:
         Output: filtered users table.
         '''
         try:
-
             # Adapt location string
-            df['location'] = df['location'].apply(lambda r: self.accent_rem(r.lower().replace(',', '')))
+            df[loc_column] = df[loc_column].apply(lambda r: ' '.join([self.accent_rem(word.lower().replace(',', '')) for word in r.split()]))
 
             # Filter location:
-            df = df[df['location'].isin(munlist)]
+            df = df[df[loc_column].isin(munlist)]
             return(df)
 
         except Exception as error:
-
             self.api_logger.exception(error)
 
-    def backup_check(self, path, db_munlist, kind):
+    def users_backup(self, path, db_users_bkp, db_munlist):
         '''
         Function to check whether there are backups.
         params:
             - path: relative path to the backup file.
-            - kind: initial users or users.
         Output: 
             - df: users dataframe.
             - usr_ls: list of screenName users.
             - check: boolean to check whether there are backup or not.
         '''
         try:
-            self.api_logger.info('Data job: Check if ' + kind + ' backup exists.')
-
+            self.api_logger.info('Data job: Check if backup exists.')
+            #Create complete path:
+            path = path + 'get_users/db_users_' + db_users_bkp + '.json'
+            #Check if file exist:
             if os.path.isfile(path):
-
-                self.api_logger.info('Data job: ' + kind + ' backup exists. Loading file: ' + path)
-
+                self.api_logger.info('Data job: Users backup exists. Loading file: ' + path)
+                #If file exist, open:
                 with open(path, 'r') as f:
-
+                    #Normalize json to pandas:
                     df = pd.json_normalize(json.load(f))
-
-                    if kind == 'users':
-                        
-                        self.api_logger.info('Data Engineering job: Filtering location from backup users.')
-                        self.api_logger.info('Data Engineering job: Observations before filter: ' + str(df.shape[0]))
-                        df = self.filter_usrs_loc(df, db_munlist)
-                        df['ff_lookup'] = False
-                        self.api_logger.info('Data Engineering job: Observations after filter: ' + str(df.shape[0]))
-
-                    usr_ls = df['screenName'].to_list()
+                    df.rename(columns={'location':'smi_str_location'}, inplace = True)
+                    #Filter users by locaiton:
+                    df = self.filter_usrs_loc(df, 'smi_str_location', db_munlist)
+                    self.api_logger.info('Data Engineering job: Observations after filter: ' + str(df.shape[0]))
+                    #Check if backup has lookup column:
+                    if 'smi_str_fflastlookup' not in df:
+                        df['smi_str_fflastlookup'] = ''
+                    #Select columns:
+                    df = df[['id', 'screenName', 'followersCount', 'friendsCount', 'protected', 'smi_str_location', 'lang', 'smi_str_fflastlookup']]
+                    df = df.reset_index(drop=True)
+                    #Rename columns to database format:
+                    df.rename(columns={'id':'smi_str_userid',
+                                   'screenName':'smi_str_usersname',
+                                   'followersCount':'smi_int_followers',
+                                   'friendsCount':'smi_int_friends',
+                                   'protected':'smi_bool_protected',
+                                   'location':'smi_str_location',
+                                   'lang':'smi_str_lang',
+                                    }, inplace=True)
                     check = True
-                    self.api_logger.info('Data job: ' + kind + ' backup from json file retrieved.')
-
+                    self.api_logger.info('Data job: Users backup from json file retrieved.')
             else:
-
-                self.api_logger.info('Data job: ' + kind + ' backup does not exists. ')
+                self.api_logger.info('Data job: Users backup does not exists. ')
                 df = pd.DataFrame()
-                usr_ls = []
                 check = False
 
-            return(df, usr_ls, check)
+            return(df, check)
 
         except Exception as error:
 
@@ -679,6 +679,8 @@ class DatabaseCreation:
             with open(path + dir + '/' + file, 'r') as f:
                 df = pd.DataFrame(json.load(f))
             
+            ## INSERT DISTINCT DATES INTO DB:
+
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, ecolist, date_col = None, sent_col = None)
 
@@ -702,7 +704,7 @@ class DatabaseCreation:
         try:
 
             self.api_logger.info('Database job: Get number of observation of municipalities table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_municipalities.sql')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_munlist_count.sql')
             self.api_logger.info('Database job: Number of observation on municipalities table: ' + str(n_obs))
 
             if n_obs == 0:
@@ -730,70 +732,82 @@ class DatabaseCreation:
             self.api_logger.info('Data job: Municipalities file not found, please provide a municipalities json file.')
             self.api_logger.exception(error)
 
-    def insert_ini_users(self, temp_data_path, db_today):
-        '''
-        Function to insert initial users into DB.
-        params: self referenced, no params.
-        '''
-        try:
-            
-            self.api_logger.info('Data job: Get number of observation of initial users table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_ini_users.sql')
-            self.api_logger.info('Data job: Number of observation of initial users table: ' + str(n_obs))
-            
-            if n_obs == 0:
-
-                self.scrap_users(temp_data_path, db_today)
-
-            else:
-                
-                self.api_logger.info('Database job: Initial users table already filled.')
-
-        except Exception as error:
-
-            self.api_logger.exception(error)
-
-    def insert_users(self, temp_data_path, db_users_bkp, db_munlist):
+    def insert_users(self, queries_path, temp_data_path, db_users_bkp, db_munlist, db_today):
         '''
         Function to insert users backup into DB.
         params: self referenced, no params.
         '''
         try:
 
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
-            self.api_logger.info('Database job: Number of observations of users table: ' + str(n_obs))
+            ## Check if users table exists in DB (query)
+            self.api_logger.info('Database job: Check if users table exists.')
+            db_usr_check = self.fetchone_SQL(queries_path + 'SMI_usrs_table_check.sql')
 
-            if n_obs == 0:
+            if db_usr_check:
+                self.api_logger.info('Database job: Users table exists.')
+                ## If users table exists:
+                ## Check number of observations (query)
+                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_usrs_count.sql')
+                self.api_logger.info('Database job: Number of observations of users table: ' + str(n_obs))
+
+                if n_obs == 0:
+                    ## If users table n_obs == 0:
+                    ## Check users backup.
+                    self.api_logger.info('Database job: Users table in DB is empty.')
+                    self.api_logger.info('Data job: Check users backup.')
+                    df_usr, df_usr_check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
                 
-                # Check users table:
-                self.api_logger.info('Database job: Users table in DB is empty.')
-                self.api_logger.info('Data job: Get users backup.')
-                path_usr = temp_data_path + 'get_users/db_users_' + db_users_bkp + '.json'
-                df_usr, df_usr_ls, df_usr_check = self.backup_check(path_usr, db_munlist, kind = 'users')
-                
-                if df_usr_check:
+                    if df_usr_check:
+                        # Users table insertion:
+                        self.api_logger.info('Database job: Users backup exists, insert into DB.')
+                        self.df_to_postgres(df_usr, self.users_table)
+                        self.api_logger.info('Database job: Users table inserted on DB.')
+                        
+                    else:
+                        self.api_logger.info('Data job: Users backup does not exists.')
+                        ## If users backup does not exists:
+                        ## Scrap users from url and insert into DB.
+                        self.api_logger.info('Scrapping job: Retrieve users from url.')
+                        self.scrap_users(temp_data_path, db_today, db_munlist)
+                        self.api_logger.info('Scrapping job:Users retrieved from url.')
 
-                    # Initial users table insertion:
-                    self.api_logger.info('Database job: Users back into DB.')
-                    self.df_to_postgres(df_usr, self.users_table)
-                    self.api_logger.info('Database job: Users table inserted on DB.')
+                elif n_obs > 0:
+                    ## If users table n_obs > 0
+                    ## Do nothing
+                    self.api_logger.info('Database job: Users table already filled.')
 
-                    self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
-                    self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
-                    n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_users.sql')
-                    self.api_logger.info('Database job: Number of observations in the users table on DB after droping duplicates: ' + str(n_obs))
-
-                else:
-
-                    self.api_logger.info('Database job: There is not users backup available.')
-
+                # Drop duplicates from users table:
+                self.api_logger.info('Data Engineering job: Droping duplicated users from users table on DB.')
+                self.query_SQL(self.queries_path + 'SMI_usrs_remove_dups.sql')
+                n_obs_dups = self.fetchone_SQL(self.queries_path + 'SMI_usrs_count.sql')
+                self.api_logger.info('Database job: Number of observations in the users table on DB after droping duplicates: ' + str(n_obs_dups))
+            
             else:
 
-                self.api_logger.info('Database job: Users table already filled.')
+                self.api_logger.info('Database job: Users table does not exist.')
+                self.api_logger.info('Database job: Create users table.')
+                ## If users table does not exists:
+                ## Create users table:
+                self.query_SQL(queries_path + 'SMI_usrs_table_creation.sql')
+                ## Check users backup.
+                self.api_logger.info('Data job: Check users backup.')
+                df, check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
+                if check:
+                    self.api_logger.info('Data job: Users backup exists, insert into db.')
+                    ## If users backup exists:
+                    ## Insert users backup into DB
+                    self.df_to_postgres(df, self.users_table)
+                    self.api_logger.info('Data job: Users backup inserted into db.')
+                else:
+                    self.api_logger.info('Data job: Users backup does not exists, insert into db.')
+                    ## If users backup does not exists:
+                    ## Scrap users from url and insert into DB.
+                    self.api_logger.info('Scrapping job: Retrieve users from url.')
+                    self.scrap_users(temp_data_path, db_today, db_munlist)
+                    self.api_logger.info('Scrapping job:Users retrieved from url.')
 
         except Exception as error:
-
-                self.api_logger.exception(error)
+            self.api_logger.exception(error)
 
     def insert_corpus(self, temp_data_path, stopw, ecolist):
         '''
@@ -807,7 +821,7 @@ class DatabaseCreation:
         try:
 
             self.api_logger.info('Database job: Get number of observation of corpus table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_corpus.sql')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_corpus_count.sql')
             self.api_logger.info('Database job: Number of observation on corpus table: ' + str(n_obs))
 
             if n_obs == 0:
@@ -820,6 +834,7 @@ class DatabaseCreation:
                     df = pd.json_normalize(json.load(f))
                     self.api_logger.info('Data job: Treat corpus text column.')
                     df = self.treat_text(df, 'content', stopw, ecolist)
+                    df = df[['user', 'date' ,'content', 'sentiment']]
                     self.api_logger.info('Data job: Corpus text column treated.')
                     self.api_logger.info('Data job: Corpus number of observations: ' + str(df.shape[0]) + ' observations.')
                     df.drop_duplicates(inplace = True)
@@ -845,7 +860,7 @@ class DatabaseCreation:
         try:
 
             self.api_logger.info('Database job: Getting number of observation of tweets table.')
-            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_count_tweets.sql')
+            n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
             self.api_logger.info('Database job: Number of observation on tweets table: ' + str(n_obs))
 
             if n_obs == 0:
@@ -858,11 +873,16 @@ class DatabaseCreation:
                         self.api_logger.info('Database job: Inserting file on DB: ' + file)
                         self.format_tweets_input(path_tweets, dire, file, stopw, ecolist)
                         self.api_logger.info('Database job: File inserted on DB: ' + file)
+                        n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
+                self.api_logger.info('Database job: Number of observations in the tweets table on DB before droping duplicates: ' + str(n_obs))
+                self.query_SQL(self.queries_path + 'SMI_tweets_remove_dups.sql')
+                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
+                self.api_logger.info('Database job: Number of observations in the tweets table on DB after droping duplicates: ' + str(n_obs))
                     
             else:
                 self.api_logger.info('Database job: Tweets table already filled.')
 
         except Exception as error:
 
-            self.api_logger.info('Data job: Tweet file not found, please provide a tweet json file.')
+            self.api_logger.info('Data job: Tweets backup files not found, please provide tweets json file.')
             self.api_logger.exception(error)

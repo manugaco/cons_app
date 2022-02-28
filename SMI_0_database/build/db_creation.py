@@ -2,6 +2,7 @@ import os
 import logging
 from datetime import datetime
 from datetime import datetime as dt
+from tweepy import API, OAuthHandler
 import psycopg2
 import json
 
@@ -15,6 +16,7 @@ with open('../config/global.json') as config_file:
 headers = gb_config['headers']
 urls = gb_config['urls']
 ini_users_dict = gb_config['ini_users_dict']
+tw_acc = gb_config['tw_acc']
 
 ## APP Params:
 
@@ -36,7 +38,6 @@ db_ini_users_bkp = app_config['db_ini_users_bkp']
 db_today = str(dt.today().strftime("%Y-%m-%d"))
 
 # Names:
-initial_users_table = app_config['initial_users_table']
 users_table = app_config['users_table']
 corpus_table = app_config['corpus_table']
 munlist_table = app_config['munlist_table']
@@ -52,6 +53,19 @@ if not os.path.isdir(logs_path + app_name):
 
 if not os.path.isdir(temp_data_path):
     os.makedirs(temp_data_path)
+
+# Twitter API credentials:
+
+consumer_key = tw_acc['CONSUMER_KEY'] 
+consumer_secret = tw_acc['CONSUMER_SECRET'] 
+access_token = tw_acc['ACCESS_TOKEN']
+access_secret = tw_acc['ACCESS_SECRET']
+
+# Twitter API connection:
+
+auth = OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_secret)
+api = API(auth, wait_on_rate_limit=True)
 
 ## Logger initialization:
 
@@ -93,8 +107,7 @@ try:
 
     #Create class instance:
     dbcreate = DatabaseCreation(queries_path, conn, schema, 
-                                api_logger, urls, headers, 
-                                ini_users_dict, initial_users_table, 
+                                api_logger, api, urls, headers, ini_users_dict, 
                                 users_table, corpus_table, munlist_table)
 
     ## Check schema and tables:
@@ -118,12 +131,9 @@ try:
     db_munlist = dbcreate.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
     munlist = pd.DataFrame(db_munlist, columns = ['location'])['location'].tolist()
     db_munlist = [dbcreate.accent_rem(mun.lower().replace(',', '')) for mun in munlist]
-    
-    ## Insert initial users:
-    dbcreate.insert_ini_users(temp_data_path, db_today)
 
     ## Insert users:
-    dbcreate.insert_users(temp_data_path, db_users_bkp, db_munlist)
+    dbcreate.insert_users(queries_path, temp_data_path, db_users_bkp, db_munlist, db_today)
 
     ## Insert corpus:
     dbcreate.insert_corpus(temp_data_path, stopw, ecolist)

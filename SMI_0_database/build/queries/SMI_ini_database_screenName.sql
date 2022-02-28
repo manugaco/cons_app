@@ -1,1 +1,0 @@
-select si."screenName" from smi_schema.smi_initial_users si;

@@ -2,7 +2,8 @@
 
 drop table if exists smi_schema.smi_munlist;
 
+-- Create municipalities table:
 create table smi_schema.smi_munlist (
-    "location" varchar NOT NULL
+    "smi_str_location" varchar NOT NULL
 );
 
