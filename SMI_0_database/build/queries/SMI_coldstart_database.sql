@@ -38,5 +38,5 @@ create table smi_schema.smi_tweets (
 create table smi_schema.smi_date_tweets (
     "smi_str_username" varchar NOT NULL,
     "smi_str_datetweets" varchar,
-    primary key(smi_str_username)
+    primary key("smi_str_username")
 );

@@ -237,6 +237,21 @@ class DatabaseCreation:
                     self.query_SQL(self.queries_path + 'SMI_tweets_table_creation.sql')
                     self.api_logger.info('Database job: Tweets table created on DB.')
 
+                ## Check date tweets table.
+                self.api_logger.info('Database job: Check if date tweets table exist on DB.')
+                db_dt_check = self.fetchone_SQL(self.queries_path + 'SMI_datetweets_table_check.sql')
+
+                # If exists, do nothing.
+                if db_dt_check:
+                    self.api_logger.info('Database job: Date tweets table exist on DB.')
+
+                # If it does not exist, create tweets table.
+                else:
+                    self.api_logger.info('Database job: Date tweets table does not exist on DB.')
+                    self.api_logger.info('Database job: Creating date tweets table on DB.')
+                    self.query_SQL(self.queries_path + 'SMI_datetweets_table_creation.sql')
+                    self.api_logger.info('Database job: Date tweets table created on DB.')
+
             # If schema does not exists, create schema and tables.
             else:
 
@@ -405,7 +420,7 @@ class DatabaseCreation:
             self.api_logger.info('Data job: Treat initial users.')
             df_ini_list = df['screenName'].tolist()
             df_users = pd.DataFrame(columns=['smi_str_userid', 
-                                 'smi_str_usersname', 
+                                 'smi_str_username', 
                                  'smi_int_followers', 
                                  'smi_int_friends', 
                                  'smi_bool_protected',
@@ -426,7 +441,7 @@ class DatabaseCreation:
                                                 user_obj.protected,
                                                 user_obj.location,
                                                 user_obj.lang]], columns=['smi_str_userid', 
-                                                                        'smi_str_usersname', 
+                                                                        'smi_str_username', 
                                                                         'smi_int_followers', 
                                                                         'smi_int_friends', 
                                                                         'smi_bool_protected',
@@ -453,9 +468,15 @@ class DatabaseCreation:
             # Store initial users on DB:
             self.api_logger.info('Database job: Insert initial users on DB.')
             self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
-            #self.df_to_postgres(df, self.users_table)
             self.api_logger.info('Database job: Initial users inserted on DB.')
-
+            
+            # Users to date_tweets:
+            self.api_logger.info('Database job: Insert users into date tweets DB table.')
+            df['smi_str_datetweets'] = ''
+            df = df[['smi_str_username', 'smi_str_datetweets']]
+            self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+            self.api_logger.info('Database job: Users inserted into date tweets DB table.')
+            
         except Exception as error:
             self.api_logger.exception(error)
 
@@ -547,7 +568,7 @@ class DatabaseCreation:
                     df = df.reset_index(drop=True)
                     #Rename columns to database format:
                     df.rename(columns={'id':'smi_str_userid',
-                                   'screenName':'smi_str_usersname',
+                                   'screenName':'smi_str_username',
                                    'followersCount':'smi_int_followers',
                                    'friendsCount':'smi_int_friends',
                                    'protected':'smi_bool_protected',
@@ -712,7 +733,6 @@ class DatabaseCreation:
                 df = df[df["text"] != '']
                 # Once the text is treated, it is persisted on the database.
                 df = df[['username', 'date', 'text']]
-                #self.users_to_postgres(self.queries_path + 'SMI_tweets_insertion.sql', df)
                 self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
@@ -768,6 +788,7 @@ class DatabaseCreation:
             db_usr_check = self.fetchone_SQL(queries_path + 'SMI_usrs_table_check.sql')
 
             if db_usr_check:
+
                 self.api_logger.info('Database job: Users table exists.')
                 ## If users table exists:
                 ## Check number of observations (query)
@@ -779,14 +800,19 @@ class DatabaseCreation:
                     ## Check users backup.
                     self.api_logger.info('Database job: Users table in DB is empty.')
                     self.api_logger.info('Data job: Check users backup.')
-                    df_usr, df_usr_check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
-                    df_usr.drop_duplicates(inplace=True)
+                    df, df_usr_check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
+
                     if df_usr_check:
                         # Users table insertion:
                         self.api_logger.info('Database job: Users backup exists, insert into DB.')
-                        self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df_usr)
-                        #self.df_to_postgres(df_usr, self.users_table)
+                        self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
                         self.api_logger.info('Database job: Users table inserted on DB.')
+                        # Users to date_tweets:
+                        self.api_logger.info('Database job: Insert users into date tweets DB table.')
+                        df['smi_str_datetweets'] = ''
+                        df = df[['smi_str_username', 'smi_str_datetweets']]
+                        self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+                        self.api_logger.info('Database job: Users inserted into date tweets DB table.')
                         
                     else:
                         self.api_logger.info('Data job: Users backup does not exists.')
@@ -816,15 +842,19 @@ class DatabaseCreation:
                 self.query_SQL(queries_path + 'SMI_usrs_table_creation.sql')
                 ## Check users backup.
                 self.api_logger.info('Data job: Check users backup.')
-                df, check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
-                df.drop_duplicates(inplace=True)
-                if check:
-                    self.api_logger.info('Data job: Users backup exists, insert into db.')
-                    ## If users backup exists:
-                    ## Insert users backup into DB
-                    self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df_usr)
-                    #self.df_to_postgres(df, self.users_table)
-                    self.api_logger.info('Data job: Users backup inserted into db.')
+                df, df_usr_check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
+
+                if df_usr_check:
+                    # Users table insertion:
+                    self.api_logger.info('Database job: Users backup exists, insert into DB.')
+                    self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
+                    self.api_logger.info('Database job: Users table inserted on DB.')
+                    # Users to date_tweets:
+                    self.api_logger.info('Database job: Insert users into date tweets DB table.')
+                    df['smi_str_datetweets'] = ''
+                    df = df[['smi_str_username', 'smi_str_datetweets']]
+                    self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+                    self.api_logger.info('Database job: Users inserted into date tweets DB table.')
                 else:
                     self.api_logger.info('Data job: Users backup does not exists, insert into db.')
                     ## If users backup does not exists:
