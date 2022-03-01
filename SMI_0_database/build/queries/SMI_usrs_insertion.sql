@@ -9,10 +9,3 @@ INSERT INTO {schema}.smi_users ("smi_str_userid",
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT ("smi_str_username")
 DO NOTHING;
-
-DELETE FROM {schema}.smi_users suta
-    WHERE EXISTS (SELECT 1
-                  FROM {schema}.smi_users sutb
-                  WHERE sutb."smi_str_userid" = suta."smi_str_userid" AND
-                        sutb.ctid < suta.ctid
-                 );

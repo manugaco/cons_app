@@ -11,5 +11,6 @@ create table smi_schema.smi_users (
     "smi_bool_protected" boolean,
     "smi_str_location" varchar,
     "smi_str_lang" varchar,
-    "smi_str_lastlookup" varchar
+    "smi_str_lastlookup" varchar,
+    primary key ("smi_str_username")
 );

@@ -94,25 +94,12 @@ try:
     cur = conn.cursor()
     schema = db_config['db_schema']
 
-    ##Decide whether the users to start with for the retrieval 
-    # are the initial or the backup users
-
     # Get users table from database:
     with open(queries_path + 'SMI_query_users.sql', 'r') as f:
         query = f.read().format(schema=schema)
         cur.execute(query)
         db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
         db_users = db_users.astype({"id": object})
-
-    if db_users.shape[0] == 0:
-        # Get initial users table from database:
-        with open(queries_path + 'SMI_query_ini_users.sql', 'r') as f:
-            query = f.read().format(schema=schema)
-            cur.execute(query)
-            db_ini_users = pd.DataFrame(cur.fetchall(), columns = list(ini_users_dict.keys()))
-
-        users_ls = db_ini_users["screenName"].to_list()
-    else:
         users_ls = db_users["screenName"].to_list()
 
     # Users pipeline class instance:

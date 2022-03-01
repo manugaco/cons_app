@@ -4,6 +4,7 @@ from datetime import datetime as dt
 import re
 import requests
 import psycopg2
+from psycopg2 import sql
 from io import StringIO
 import os
 import json
@@ -112,6 +113,27 @@ class DatabaseCreation:
             self.api_logger.exception(error)
 
         cur.close()
+
+    def users_to_postgres(self, path, df):
+        '''
+        Function to insert users into DB by row.
+        params:
+            - path: query path.
+            - df: dataframe to persist into db.
+        output: no output provided.
+        '''
+        try:
+            cur = self.conn.cursor()
+            with open(path, 'r') as f:
+                query = f.read().format(schema = self.schema)
+            for row in df.values:
+                cur.execute(sql.SQL(query).format(schema=sql.Identifier(self.schema)), row)
+
+        except (Exception, psycopg2.DatabaseError) as error:
+
+            self.conn.rollback()
+            cur.close()
+            self.api_logger.exception(error)
 
     def df_to_postgres(self, df, table):
         """
@@ -430,7 +452,8 @@ class DatabaseCreation:
             
             # Store initial users on DB:
             self.api_logger.info('Database job: Insert initial users on DB.')
-            self.df_to_postgres(df, self.users_table)
+            self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
+            #self.df_to_postgres(df, self.users_table)
             self.api_logger.info('Database job: Initial users inserted on DB.')
 
         except Exception as error:
@@ -689,6 +712,7 @@ class DatabaseCreation:
                 df = df[df["text"] != '']
                 # Once the text is treated, it is persisted on the database.
                 df = df[['username', 'date', 'text']]
+                #self.users_to_postgres(self.queries_path + 'SMI_tweets_insertion.sql', df)
                 self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
@@ -756,11 +780,12 @@ class DatabaseCreation:
                     self.api_logger.info('Database job: Users table in DB is empty.')
                     self.api_logger.info('Data job: Check users backup.')
                     df_usr, df_usr_check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
-                
+                    df_usr.drop_duplicates(inplace=True)
                     if df_usr_check:
                         # Users table insertion:
                         self.api_logger.info('Database job: Users backup exists, insert into DB.')
-                        self.df_to_postgres(df_usr, self.users_table)
+                        self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df_usr)
+                        #self.df_to_postgres(df_usr, self.users_table)
                         self.api_logger.info('Database job: Users table inserted on DB.')
                         
                     else:
@@ -792,11 +817,13 @@ class DatabaseCreation:
                 ## Check users backup.
                 self.api_logger.info('Data job: Check users backup.')
                 df, check = self.users_backup(temp_data_path, db_users_bkp, db_munlist)
+                df.drop_duplicates(inplace=True)
                 if check:
                     self.api_logger.info('Data job: Users backup exists, insert into db.')
                     ## If users backup exists:
                     ## Insert users backup into DB
-                    self.df_to_postgres(df, self.users_table)
+                    self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df_usr)
+                    #self.df_to_postgres(df, self.users_table)
                     self.api_logger.info('Data job: Users backup inserted into db.')
                 else:
                     self.api_logger.info('Data job: Users backup does not exists, insert into db.')
