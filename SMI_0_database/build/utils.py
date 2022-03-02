@@ -730,7 +730,7 @@ class DatabaseCreation:
 
             self.api_logger.exception(error)
     
-    def gp_date_tweets(self, df):
+    def gp_date_tweets(self, df_input):
         '''
         Function to group and concat tweet dates from each user:
         params:
@@ -740,6 +740,7 @@ class DatabaseCreation:
 
         ## Treat dataframe:
         try:
+            df = df_input.copy()
             df = df.rename(columns={'username':'smi_str_username',
                                 'date':'smi_str_date'})[['smi_str_username', 'smi_str_date']]
             df['smi_str_date'] = df['smi_str_date'].astype(str)
@@ -768,8 +769,8 @@ class DatabaseCreation:
                 df = pd.DataFrame(json.load(f))
             
             ## INSERT DISTINCT DATES INTO DB:
-            df = self.gp_date_tweets(df)
-            self.datetweet_to_postgres(self.queries_path + 'SMI_datetweets_dates_insertion.sql', df)
+            df_dt = self.gp_date_tweets(df)
+            self.datetweet_to_postgres(self.queries_path + 'SMI_datetweets_dates_insertion.sql', df_dt)
 
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, ecolist, date_col = None, sent_col = None)
