@@ -114,7 +114,7 @@ class DatabaseCreation:
 
         cur.close()
 
-    def users_to_postgres(self, path, df):
+    def eachrow_to_postgres(self, path, df):
         '''
         Function to insert users into DB by row.
         params:
@@ -127,13 +127,34 @@ class DatabaseCreation:
             with open(path, 'r') as f:
                 query = f.read().format(schema = self.schema)
             for row in df.values:
-                cur.execute(sql.SQL(query).format(schema=sql.Identifier(self.schema)), row)
+                cur.execute(sql.SQL(query).format(schema=sql.Identifier(self.schema)), tuple(row))
 
         except (Exception, psycopg2.DatabaseError) as error:
 
             self.conn.rollback()
             cur.close()
             self.api_logger.exception(error)
+
+    def datetweet_to_postgres(self, path, df):
+        '''
+        Function to insert tweets date by user into DB and by row.
+        params:
+            - path: query path.
+            - df: dataframe to persist into db.
+        output: no output provided.
+        '''
+        try:
+            ## Insert into DB by row:
+            with self.conn:
+                with self.conn.cursor() as cur:
+                    with open(path, 'r') as f:
+                        query = f.read().format(schema = self.schema)
+                    for row in df.values:
+                        cur.execute(sql.SQL(query).format(schema=sql.Identifier(self.schema)), tuple(row))
+            
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.conn.rollback()
+            cur.close()
 
     def df_to_postgres(self, df, table):
         """
@@ -467,14 +488,14 @@ class DatabaseCreation:
             
             # Store initial users on DB:
             self.api_logger.info('Database job: Insert initial users on DB.')
-            self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
+            self.eachrow_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
             self.api_logger.info('Database job: Initial users inserted on DB.')
-            
+
             # Users to date_tweets:
             self.api_logger.info('Database job: Insert users into date tweets DB table.')
             df['smi_str_datetweets'] = ''
             df = df[['smi_str_username', 'smi_str_datetweets']]
-            self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+            self.eachrow_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
             self.api_logger.info('Database job: Users inserted into date tweets DB table.')
             
         except Exception as error:
@@ -708,6 +729,29 @@ class DatabaseCreation:
         except Exception as error:
 
             self.api_logger.exception(error)
+    
+    def gp_date_tweets(self, df):
+        '''
+        Function to group and concat tweet dates from each user:
+        params:
+            - df: dataframe to transform, with at least columns 'username' and 'date'.
+        output: dataframe grouped by user.
+        '''
+
+        ## Treat dataframe:
+        try:
+            df = df.rename(columns={'username':'smi_str_username',
+                                'date':'smi_str_date'})[['smi_str_username', 'smi_str_date']]
+            df['smi_str_date'] = df['smi_str_date'].astype(str)
+            df['smi_str_date'] = df['smi_str_date'].apply(lambda r: r.split()[0])
+            df.sort_values(['smi_str_username', 'smi_str_date'], ascending=[True, True], inplace=True)
+            df.drop_duplicates(inplace=True)
+            df.reset_index(drop=True, inplace=True)
+            df = df.groupby(['smi_str_username'], as_index=False).agg({'smi_str_date': ', '.join})
+            return df
+
+        except Exception as error:
+            self.api_logger.exception(error)
 
     def format_tweets_input(self, path, dir, file, stopw, ecolist):
         '''
@@ -724,16 +768,22 @@ class DatabaseCreation:
                 df = pd.DataFrame(json.load(f))
             
             ## INSERT DISTINCT DATES INTO DB:
+            df = self.gp_date_tweets(df)
+            self.datetweet_to_postgres(self.queries_path + 'SMI_datetweets_dates_insertion.sql', df)
 
             # Once the file is loaded, the tweets are treated.
             df = self.treat_text(df, 'text', stopw, ecolist, date_col = None, sent_col = None)
 
+            # Once the text is treated, it is persisted on the database.
             if df.shape[0] > 0:
 
                 df = df[df["text"] != '']
-                # Once the text is treated, it is persisted on the database.
                 df = df[['username', 'date', 'text']]
                 self.df_to_postgres(df, 'smi_tweets')
+
+                # Insert date tweets into table on DB:
+
+
 
         except Exception as error:
             print(error)
@@ -805,13 +855,13 @@ class DatabaseCreation:
                     if df_usr_check:
                         # Users table insertion:
                         self.api_logger.info('Database job: Users backup exists, insert into DB.')
-                        self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
+                        self.eachrow_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
                         self.api_logger.info('Database job: Users table inserted on DB.')
                         # Users to date_tweets:
                         self.api_logger.info('Database job: Insert users into date tweets DB table.')
                         df['smi_str_datetweets'] = ''
                         df = df[['smi_str_username', 'smi_str_datetweets']]
-                        self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+                        self.eachrow_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
                         self.api_logger.info('Database job: Users inserted into date tweets DB table.')
                         
                     else:
@@ -847,13 +897,13 @@ class DatabaseCreation:
                 if df_usr_check:
                     # Users table insertion:
                     self.api_logger.info('Database job: Users backup exists, insert into DB.')
-                    self.users_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
+                    self.eachrow_to_postgres(self.queries_path + 'SMI_usrs_insertion.sql', df)
                     self.api_logger.info('Database job: Users table inserted on DB.')
                     # Users to date_tweets:
                     self.api_logger.info('Database job: Insert users into date tweets DB table.')
                     df['smi_str_datetweets'] = ''
                     df = df[['smi_str_username', 'smi_str_datetweets']]
-                    self.users_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
+                    self.eachrow_to_postgres(self.queries_path + 'SMI_datetweets_users_insertion.sql', df)
                     self.api_logger.info('Database job: Users inserted into date tweets DB table.')
                 else:
                     self.api_logger.info('Data job: Users backup does not exists, insert into db.')
