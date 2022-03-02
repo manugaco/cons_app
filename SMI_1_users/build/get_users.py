@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import random as rd
+import time
 import os
 import json
 import logging
@@ -93,36 +94,35 @@ try:
     cur = conn.cursor()
     schema = db_config['db_schema']
 
-    # Get users table from database:
-    with open(queries_path + 'SMI_query_users.sql', 'r') as f:
-        query = f.read().format(schema=schema)
-        cur.execute(query)
-        db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
-        db_users = db_users.astype({"smi_str_userid": object})
-        users_ls = db_users["smi_str_username"].to_list()
-
     # Users pipeline class instance:
-    upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
+    upipe = UsersPipeline(queries_path, conn, schema, 
+                          api, temp_data_path, api_logger)
 
     # Get municipalities from DB:
     db_munlist = upipe.fetchall_SQL(queries_path + 'SMI_munlist_query.sql')
     munlist = pd.DataFrame(db_munlist, columns = ['location'])['location'].tolist()
     db_munlist = [upipe.text_clean_loc(mun.lower().replace(',', '')) for mun in munlist]
-    
-    # Sample users:
-    userls = rd.sample(users_ls, nusers_sample)
-
-    # Get several users loop:
-    for user in userls:
-        upipe.get_and_insert_new_users(user, db_munlist, api)
 
 except (Exception, psycopg2.DatabaseError) as error:
     logging.exception(error)
-    finally_exit = 1
 
-finally:
-    if cur:
-        cur.close()
-    if conn:
-        conn.close()
-    logging.info('Database job: PostgresSQL connection is closed.')
+# Infinte retrieval of users:
+while True:
+    try:
+        # Get users table from database:
+        with open(queries_path + 'SMI_query_users.sql', 'r') as f:
+            query = f.read().format(schema=schema)
+            cur.execute(query)
+            db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
+            db_users = db_users.astype({"smi_str_userid": object})
+            users_ls = db_users["smi_str_username"].to_list()
+
+        # Sample users on each iteration:
+        userls = rd.sample(users_ls, nusers_sample)
+
+        # Get users loop:
+        for user in userls:
+            upipe.get_and_insert_new_users(user, db_munlist, api)
+
+    except Exception as error:
+        logging.exception(error)
