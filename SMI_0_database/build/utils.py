@@ -780,11 +780,9 @@ class DatabaseCreation:
 
                 df = df[df["text"] != '']
                 df = df[['username', 'date', 'text']]
-                self.df_to_postgres(df, 'smi_tweets')
 
                 # Insert date tweets into table on DB:
-
-
+                self.df_to_postgres(df, 'smi_tweets')
 
         except Exception as error:
             print(error)
