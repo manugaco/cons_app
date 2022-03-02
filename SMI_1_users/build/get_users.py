@@ -109,6 +109,7 @@ except (Exception, psycopg2.DatabaseError) as error:
 # Infinte retrieval of users:
 while True:
     try:
+        logging.info('Twetter API job: Starting iteration.')
         # Get users table from database:
         with open(queries_path + 'SMI_query_users.sql', 'r') as f:
             query = f.read().format(schema=schema)
