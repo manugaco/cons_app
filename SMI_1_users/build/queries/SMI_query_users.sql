@@ -1,12 +1,10 @@
 select *
 from {schema}.smi_users sut
 where 
---remove once tested
-sut."followersCount" < 100
-AND sut."followersCount" > 20
-AND sut."friendsCount" < 100
-AND sut."friendsCount" > 20
-AND 
---remove once tested
-sut."protected" = False
-AND sut."ff_lookup" = False;
+sut."smi_int_followers" < 5000
+AND sut."smi_int_followers" > 50
+AND sut."smi_int_friends" < 5000
+AND sut."smi_int_friends" > 50
+AND sut."smi_bool_protected" = False
+AND (sut."smi_str_lastlookup" IS NULL
+OR TO_DATE(sut."smi_str_lastlookup", 'YYYY-MM-DD') < CURRENT_DATE);

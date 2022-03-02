@@ -119,10 +119,10 @@ class UsersPipeline:
         try:
             # Split the location column into a list of strings to check if each word is in the list:
             df_t = df.copy()
-            df_t['location'] = df_t['location'].apply(lambda r: r.split())
+            df_t['smi_str_location'] = df_t['smi_str_location'].apply(lambda r: r.split())
 
             # Clean the text of the location column:
-            locls = df_t['location'].to_list()
+            locls = df_t['smi_str_location'].to_list()
             locls_clean = [[self.clean_loc(loc, db_munlist) for loc in userloc] for userloc in locls]
             
             # Filter whether the users are in the municipalities or not:
@@ -131,9 +131,9 @@ class UsersPipeline:
             df_t.drop(columns='loc_filter', inplace=True)
             
             # Inner join to keep only the spanish users from the original dataframe:
-            output = df.merge(df_t['id'], on='id', how='inner')
-            output = output.astype({"id": str})
-            output['ff_lookup'] = False
+            output = df.merge(df_t['smi_str_userid'], on='smi_str_userid', how='inner')
+            output = output.astype({"smi_str_userid": str})
+            output['smi_str_lastlookup'] = ''
             
             return(output)
         except Exception as error:
@@ -158,12 +158,31 @@ class UsersPipeline:
                 df = pd.DataFrame(data)
 
                 #Reorder and change column names to match the database table:
-                df = df[['id', 'screen_name', 'followers_count', 'friends_count', 'protected', 'location', 'lang']]
-                df.rename(columns={'screen_name':'screenName', 'followers_count':'followersCount', 'friends_count':'friendsCount'}, inplace=True)
+                df = df[['id', 
+                        'screen_name', 
+                        'followers_count', 
+                        'friends_count', 
+                        'protected', 
+                        'location', 
+                        'lang']]
+                df.rename(columns={'id':'smi_str_userid',
+                                    'screen_name':'smi_str_username', 
+                                    'followers_count':'smi_int_followers',
+                                    'friends_count':'smi_int_friends',
+                                    'protected':'smi_bool_protected',
+                                    'location':'smi_str_location',
+                                    'lang':'smi_str_lang'
+                                    }, inplace=True)
 
             else:
                 #Return empty dataframe:
-                df = pd.DataFrame(columns=['id', 'screenName', 'followersCount', 'friendCount', 'protected', 'location', 'lang'])
+                df = pd.DataFrame(columns=['smi_str_userid', 
+                                            'smi_str_username', 
+                                            'smi_int_followers', 
+                                            'smi_int_friends', 
+                                            'smi_bool_protected', 
+                                            'smi_str_location', 
+                                            'smi_str_lang'])
 
             return(df)
 
@@ -191,7 +210,13 @@ class UsersPipeline:
             else:
                 df_followers = pd.DataFrame()
             self.api_logger.info('Twitter API job: Number of followers retrieved: ' + str(df_followers.shape[0]))
-            
+        
+        except Exception:
+            self.api_logger.info('Raised exception. Followers retrieval failed.')
+            df_followers = pd.DataFrame()
+            pass
+        
+        try:
             #Retrieve friends from a give user:
             self.api_logger.info('Twitter API job: Retrieving friends')
             friends = []
@@ -205,19 +230,27 @@ class UsersPipeline:
                 df_friends = pd.DataFrame()
             self.api_logger.info('Twitter API job: Number of friends retrieved from user: ' + str(df_friends.shape[0]))
 
+        except Exception:
+            self.api_logger.info('Raised exception. Friends retrieval failed.')
+            df_friends = pd.DataFrame()
+            pass
+
+        try:
             #Output dataframe:
             output = pd.concat([df_followers, df_friends], axis=0)
             output.drop_duplicates(inplace=True)
-
-            #Adapt id format:
-            output = output.astype({"id": object})
+            self.api_logger.info('Twitter API job: Number of users to be inserted into DB: ' + str(output.shape[0]))
+            
             if output.shape[0] > 0:
+                #Adapt id format:
+                output = output.astype({"smi_str_userid": object})
                 return(output.reset_index(drop=True))
             else:
-                return(pd.DataFrame())
+                return(output)
 
         except Exception:
             self.api_logger.info('Raised exception, getting info from next user')
+            output = pd.DataFrame()
             pass
 
     def update_user_lookup(self, user):
@@ -287,7 +320,6 @@ class UsersPipeline:
             
             #Get friends and followers from a given user:
             df_new_users = self.get_ff(user, api)
-
             #Insert new users into database and drop duplicates:
             if df_new_users.shape[0] > 0:
 
@@ -302,17 +334,24 @@ class UsersPipeline:
                 self.api_logger.info('Database job: New users inserted into DB')
                 self.api_logger.info('Data job: Saving new users backup' )
 
-                df = pd.DataFrame(self.fetchall_SQL(self.queries_path + 'SMI_query_new_users.sql'))
-                df.columns = ['id', 'screenName', 'followersCount', 'friendsCount', 'protected', 'location', 'lang', 'ff_lookup']
+                df = pd.DataFrame(self.fetchall_SQL(self.queries_path + 'SMI_query_all_users.sql'))
+                df.columns = ['smi_str_userid', 
+                                'smi_str_username', 
+                                'smi_int_followers', 
+                                'smi_int_friends', 
+                                'smi_bool_protected', 
+                                'smi_str_location', 
+                                'smi_str_lang', 
+                                'smi_str_lastlookup']
                 self.users_backup(df)
                 
                 self.api_logger.info('Data job: New users backup saved')
 
-                #Update ff_lookup column from a given user in database:
-                self.update_user_lookup(user)
-
             else:
                 self.api_logger.info('Database job: There are not new users to be inserted into DB')
+
+            #Update ff_lookup column from a given user in database:
+            self.update_user_lookup(user)
 
         except Exception as error:
             self.api_logger.exception(error)

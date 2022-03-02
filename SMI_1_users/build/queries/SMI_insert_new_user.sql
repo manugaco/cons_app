@@ -1,3 +1,5 @@
+-- Insert new users into DB if does not exists:
+
 INSERT INTO {schema}.smi_users ("smi_str_userid", 
                                 "smi_str_username",
                                 "smi_int_followers", 
@@ -9,6 +11,8 @@ INSERT INTO {schema}.smi_users ("smi_str_userid",
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT ("smi_str_username")
 DO NOTHING;
+
+-- Drop duplicated users:
 
 DELETE FROM {schema}.smi_users suta
     WHERE EXISTS (SELECT 1

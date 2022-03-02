@@ -33,7 +33,6 @@ with open('../config/get_users.config') as config_file:
 queries_path = app_config['queries_path']
 logs_path = app_config['logs_path']
 temp_data_path = app_config['temp_data_path']
-db_users_bkp = app_config['db_users_bkp']
 nusers_sample = app_config['nusers_sample']
 app_name = app_config['app_name']
 
@@ -99,8 +98,8 @@ try:
         query = f.read().format(schema=schema)
         cur.execute(query)
         db_users = pd.DataFrame(cur.fetchall(), columns = list(users_dict.keys()))
-        db_users = db_users.astype({"id": object})
-        users_ls = db_users["screenName"].to_list()
+        db_users = db_users.astype({"smi_str_userid": object})
+        users_ls = db_users["smi_str_username"].to_list()
 
     # Users pipeline class instance:
     upipe = UsersPipeline(queries_path, conn, schema, api, temp_data_path, api_logger)
