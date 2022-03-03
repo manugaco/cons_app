@@ -1,0 +1,20 @@
+version: '3'
+services:
+
+  users_insertion:
+    hostname: tweets_insertion
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: tweets_insertion
+    volumes:
+      - ./../../../context/SMI/data/:/home/app/data:rw
+      - ./../../../context/SMI/config/:/home/app/config:rw
+      - ./../../../context/SMI/logs/:/home/app/logs/tweets_insertion:rw
+    networks:
+      - smi_net
+
+networks:
+  smi_net:
+    driver: bridge
+    external: true
