@@ -120,19 +120,19 @@ while True:
 
         ## Insert the tweets in the tweets table (df_to_postgres) if there are tweets, otherwise do nothing
         print('Database job: Inserting scrapped tweets on DB')
-        tpipe.df_to_postgres(df_tweets, 'smi_tweets', conn)
+        tpipe.df_to_postgres(df_tweets, 'smi_tweets')
         print('Database job: Scrapped tweets inserted on DB')
 
         ## Execute SQL query to remove duplicated entries on the tweets table:
         print('Database job: Removing duplicated entries')
-        tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql', schema, conn)
+        tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
         print('Database job: Duplicated entries removed')
 
         ## Update new retrieval date on smi_date_tweets table on DB
         print('Database job: Inserting new scrapped date tweets into DB')
         user_to_insert = user.copy()
         user_to_insert[1] = ', '.join(user_to_insert[1].split(', ') + [ini_date])
-        tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert), schema, conn)
+        tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
         print('Database job: Scrapped date tweets inserted into DB')
 
         ## SLEEP n seconds, choose n randomly in the interval [60, 120]

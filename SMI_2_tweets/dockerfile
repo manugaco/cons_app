@@ -3,7 +3,9 @@
 FROM python:3.8.10
 COPY requirements.txt home/app/get_tweets/
 RUN pip install lxml
+RUN pip install openpyxl
 RUN pip install -r home/app/get_tweets/requirements.txt
+RUN python3 -m spacy download es_core_news_sm
 COPY build/ /home/app/get_tweets/
 WORKDIR /home/app/get_tweets/
 CMD ["python3", "get_tweets.py"]
