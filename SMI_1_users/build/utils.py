@@ -271,7 +271,7 @@ class UsersPipeline:
             self.conn.rollback()
             self.api_logger.exception(error)
 
-    def insert_new_users_into_db(self, user_row):
+    def insert_new_users_into_db(self, path, user_row):
         '''
         Function to check if a new user exists and insert into db in other case.
         params:
@@ -279,7 +279,7 @@ class UsersPipeline:
         '''
 
         try:
-            with open(self.queries_path + 'SMI_insert_new_user.sql') as f:
+            with open(path) as f:
                 self.cur.execute(
                     sql.SQL(f.read()).format(schema=sql.Identifier(self.schema)),
                     user_row
@@ -328,8 +328,14 @@ class UsersPipeline:
                 self.api_logger.info('Database job: Number of new users to be inserted into DB: ' + str(df_new_users.shape[0]))
                 self.api_logger.info('Database job: Insert new users into DB')
 
+                # Set queries paths: 
+                path_users_table = self.queries_path + 'SMI_insert_new_user.sql'
+                path_date_tweets_table = self.queries_path + 'SMI_insert_new_datetweets.sql'
+
                 for i in range(df_new_users.shape[0]):
-                    self.insert_new_users_into_db(tuple(df_new_users.iloc[i, :]))
+                    self.api_logger.info(str(df_new_users.iloc[1, 1]))
+                    self.insert_new_users_into_db(path_users_table, tuple(df_new_users.iloc[i, :]))
+                    self.insert_new_users_into_db(path_date_tweets_table, tuple(df_new_users[['smi_str_username', 'smi_str_lastlookup']].iloc[i, :]))
 
                 self.api_logger.info('Database job: New users inserted into DB')
                 self.api_logger.info('Data job: Saving new users backup' )
@@ -343,8 +349,8 @@ class UsersPipeline:
                                 'smi_str_location', 
                                 'smi_str_lang', 
                                 'smi_str_lastlookup']
+
                 self.users_backup(df)
-                
                 self.api_logger.info('Data job: New users backup saved')
 
             else:
