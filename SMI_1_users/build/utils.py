@@ -332,10 +332,13 @@ class UsersPipeline:
                 path_users_table = self.queries_path + 'SMI_insert_new_user.sql'
                 path_date_tweets_table = self.queries_path + 'SMI_insert_new_datetweets.sql'
 
+                # Copy data frame and create datetweets column:
+                df_dt = df_new_users.copy()
+                df_dt['smi_str_datetweets'] = ''
+
                 for i in range(df_new_users.shape[0]):
-                    self.api_logger.info(str(df_new_users.iloc[1, 1]))
                     self.insert_new_users_into_db(path_users_table, tuple(df_new_users.iloc[i, :]))
-                    self.insert_new_users_into_db(path_date_tweets_table, tuple(df_new_users[['smi_str_username', 'smi_str_lastlookup']].iloc[i, :]))
+                    self.insert_new_users_into_db(path_date_tweets_table, tuple(df_dt[['smi_str_username', 'smi_str_datetweets']].iloc[i, :]))
 
                 self.api_logger.info('Database job: New users inserted into DB')
                 self.api_logger.info('Data job: Saving new users backup' )

@@ -1,7 +1,7 @@
 -- Insert new users into DB if does not exists:
 
 INSERT INTO {schema}.smi_date_tweets 
-    ("smi_str_username", "smi_str_lastlookup")
+    ("smi_str_username", "smi_str_datetweets")
 VALUES 
     (%s, %s)
 ON CONFLICT 

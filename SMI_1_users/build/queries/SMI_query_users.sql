@@ -1,9 +1,9 @@
 select *
 from {schema}.smi_users sut
 where 
-sut."smi_int_followers" < 10
+sut."smi_int_followers" < 30
 AND sut."smi_int_followers" > 5
-AND sut."smi_int_friends" < 10
+AND sut."smi_int_friends" < 30
 AND sut."smi_int_friends" > 5
 AND 
 sut."smi_bool_protected" = False
