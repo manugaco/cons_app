@@ -10,9 +10,9 @@ DO NOTHING;
 
 -- Drop duplicated users:
 
-DELETE FROM {schema}.smi_users suta
+DELETE FROM {schema}.smi_date_tweets suta
     WHERE EXISTS (SELECT 1
-                  FROM {schema}.smi_users sutb
+                  FROM {schema}.smi_date_tweets sutb
                   WHERE sutb."smi_str_username" = suta."smi_str_username" AND
                         sutb.ctid < suta.ctid
                  );
