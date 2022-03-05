@@ -17,6 +17,6 @@ DO NOTHING;
 DELETE FROM {schema}.smi_users suta
     WHERE EXISTS (SELECT 1
                   FROM {schema}.smi_users sutb
-                  WHERE sutb."smi_str_userid" = suta."smi_str_userid" AND
+                  WHERE sutb."smi_str_username" = suta."smi_str_username" AND
                         sutb.ctid < suta.ctid
                  );
