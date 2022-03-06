@@ -754,7 +754,7 @@ class DatabaseCreation:
         except Exception as error:
             self.api_logger.exception(error)
 
-    def format_tweets_input(self, path, dir, file, stopw, ecolist):
+    def format_tweets_input(self, path, dir, file, df_users, stopw, ecolist):
         '''
         Function to insert tweets on database after format them from 
         a backup json file inside a directory recursively.
@@ -768,6 +768,12 @@ class DatabaseCreation:
             with open(path + dir + '/' + file, 'r') as f:
                 df = pd.DataFrame(json.load(f))
             
+            #Select only those tweets with a related user on db:
+            df = df.merge(df_users, 
+                            left_on = 'username', 
+                            right_on = 'smi_str_username', 
+                            how = 'inner')[['date', 'text', 'username']]
+
             ## INSERT DISTINCT DATES INTO DB:
             df_dt = self.gp_date_tweets(df)
             self.datetweet_to_postgres(self.queries_path + 'SMI_datetweets_dates_insertion.sql', df_dt)
@@ -968,7 +974,8 @@ class DatabaseCreation:
             self.api_logger.info('Database job: Getting number of observation of tweets table.')
             n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
             self.api_logger.info('Database job: Number of observation on tweets table: ' + str(n_obs))
-
+            #Query users:
+            df_usrs = pd.DataFrame(self.fetchall_SQL(self.queries_path + 'SMI_usrs_query.sql')).rename(columns = {0:'smi_str_username'})
             if n_obs == 0:
 
                 path_tweets = temp_data_path + 'get_tweets/'
@@ -977,13 +984,13 @@ class DatabaseCreation:
                     files = os.listdir(path_tweets + dire + '/')
                     for file in files:
                         self.api_logger.info('Database job: Inserting file on DB: ' + file)
-                        self.format_tweets_input(path_tweets, dire, file, stopw, ecolist)
+                        self.format_tweets_input(path_tweets, dire, file, df_usrs, stopw, ecolist)
                         self.api_logger.info('Database job: File inserted on DB: ' + file)
                         n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
-                self.api_logger.info('Database job: Number of observations in the tweets table on DB before droping duplicates: ' + str(n_obs))
-                self.query_SQL(self.queries_path + 'SMI_tweets_remove_dups.sql')
-                n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
-                self.api_logger.info('Database job: Number of observations in the tweets table on DB after droping duplicates: ' + str(n_obs))
+                        self.api_logger.info('Database job: Number of observations in the tweets table on DB before droping duplicates: ' + str(n_obs))
+                        self.query_SQL(self.queries_path + 'SMI_tweets_remove_dups.sql')
+                        n_obs = self.fetchone_SQL(self.queries_path + 'SMI_tweets_count.sql')
+                        self.api_logger.info('Database job: Number of observations in the tweets table on DB after droping duplicates: ' + str(n_obs))
                     
             else:
                 self.api_logger.info('Database job: Tweets table already filled.')
