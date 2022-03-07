@@ -135,8 +135,8 @@ while True:
         tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
         api_logger.info('Database job: Scrapped date tweets inserted into DB.')
 
-        ## SLEEP n seconds, choose n randomly in the interval [60, 120]
-        sleep_time = random.randint(60, 120)
+        ## SLEEP n seconds, choose n randomly:
+        sleep_time = random.randint(15, 30)
         api_logger.info('Sleeping sistem for: ' + str(sleep_time) + ' seconds.')
         time.sleep(sleep_time)
 
