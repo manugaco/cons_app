@@ -15,7 +15,7 @@ from utils import *
 
 # APP Params:
 
-with open('../config/get_users.config') as config_file:
+with open('../config/get_tweets.config') as config_file:
     app_config = json.load(config_file)
 
 queries_path = app_config['queries_path']
