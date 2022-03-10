@@ -116,14 +116,14 @@ while True:
         ## Scrap the tweets of the user on that dates range:
         api_logger.info('Scrapping job: Retrieving tweets from user.')
         df_tweets = tpipe.get_tweets(user_screename, ini_date, end_date, stopw, ecolist)
-        api_logger.info('Scrapping job: Number of scrapped tweets: ' + str(df_tweets.shape[0]))
+        api_logger.info('Scrapping job: Number of tweets: ' + str(df_tweets.shape[0]))
         
         if df_tweets.shape[0] > 0:
 
             ## Insert the tweets in the tweets table (df_to_postgres) if there are tweets, otherwise do nothing
-            api_logger.info('Database job: Inserting scrapped tweets on DB.')
+            api_logger.info('Database job: Inserting tweets on DB.')
             tpipe.df_to_postgres(df_tweets, 'smi_tweets')
-            api_logger.info('Database job: Scrapped tweets inserted on DB.')
+            api_logger.info('Database job: Tweets inserted on DB.')
 
             ## Execute SQL query to remove duplicated entries on the tweets table:
             #api_logger.info('Database job: Removing duplicated entries.')
@@ -131,6 +131,7 @@ while True:
             #api_logger.info('Database job: Duplicated entries removed.')
 
         else:
+
             api_logger.info('Database job: There are no tweets to insert on DB.')
 
         ## Update new retrieval date on smi_date_tweets table on DB
