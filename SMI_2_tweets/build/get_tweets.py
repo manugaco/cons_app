@@ -126,9 +126,9 @@ while True:
             api_logger.info('Database job: Scrapped tweets inserted on DB.')
 
             ## Execute SQL query to remove duplicated entries on the tweets table:
-            api_logger.info('Database job: Removing duplicated entries.')
-            tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
-            api_logger.info('Database job: Duplicated entries removed.')
+            #api_logger.info('Database job: Removing duplicated entries.')
+            #tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
+            #api_logger.info('Database job: Duplicated entries removed.')
 
             ## Update new retrieval date on smi_date_tweets table on DB
             api_logger.info('Database job: Inserting new scrapped date tweets into DB.')
