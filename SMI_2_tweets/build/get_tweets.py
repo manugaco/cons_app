@@ -130,15 +130,15 @@ while True:
             #tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
             #api_logger.info('Database job: Duplicated entries removed.')
 
-            ## Update new retrieval date on smi_date_tweets table on DB
-            api_logger.info('Database job: Inserting new scrapped date tweets into DB.')
-            user_to_insert = user.copy()
-            user_to_insert[1] = ', '.join(user_to_insert[1].split(', ') + [ini_date])
-            tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
-            api_logger.info('Database job: Scrapped date tweets inserted into DB.')
-
         else:
             api_logger.info('Database job: There are no tweets to insert on DB.')
+
+        ## Update new retrieval date on smi_date_tweets table on DB
+        api_logger.info('Database job: Inserting date tweets into DB.')
+        user_to_insert = user.copy()
+        user_to_insert[1] = ', '.join(user_to_insert[1].split(', ') + [ini_date])
+        tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
+        api_logger.info('Database job: Date tweets inserted into DB.')
 
         ## SLEEP n seconds, choose n randomly:
         sleep_time = random.randint(20, 30)
