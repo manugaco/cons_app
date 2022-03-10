@@ -141,7 +141,7 @@ while True:
             api_logger.info('Database job: There are no tweets to insert on DB.')
 
         ## SLEEP n seconds, choose n randomly:
-        sleep_time = random.randint(15, 30)
+        sleep_time = random.randint(20, 30)
         api_logger.info('Sleeping system for: ' + str(sleep_time) + ' seconds.')
         time.sleep(sleep_time)
 
