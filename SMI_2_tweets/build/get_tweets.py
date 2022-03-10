@@ -117,27 +117,34 @@ while True:
         api_logger.info('Scrapping job: Retrieving tweets from user.')
         df_tweets = tpipe.get_tweets(user_screename, ini_date, end_date, stopw, ecolist)
         api_logger.info('Scrapping job: Number of scrapped tweets: ' + str(df_tweets.shape[0]))
+        
+        if df_tweets.shape[0] > 0:
 
-        ## Insert the tweets in the tweets table (df_to_postgres) if there are tweets, otherwise do nothing
-        api_logger.info('Database job: Inserting scrapped tweets on DB.')
-        tpipe.df_to_postgres(df_tweets, 'smi_tweets')
-        api_logger.info('Database job: Scrapped tweets inserted on DB.')
+            ## Insert the tweets in the tweets table (df_to_postgres) if there are tweets, otherwise do nothing
+            api_logger.info('Database job: Inserting scrapped tweets on DB.')
+            tpipe.df_to_postgres(df_tweets, 'smi_tweets')
+            api_logger.info('Database job: Scrapped tweets inserted on DB.')
 
-        ## Execute SQL query to remove duplicated entries on the tweets table:
-        api_logger.info('Database job: Removing duplicated entries.')
-        tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
-        api_logger.info('Database job: Duplicated entries removed.')
+            ## Execute SQL query to remove duplicated entries on the tweets table:
+            api_logger.info('Database job: Removing duplicated entries.')
+            tpipe.query_SQL(queries_path + 'SMI_remove_dup_tweets.sql')
+            api_logger.info('Database job: Duplicated entries removed.')
 
-        ## Update new retrieval date on smi_date_tweets table on DB
-        api_logger.info('Database job: Inserting new scrapped date tweets into DB.')
-        user_to_insert = user.copy()
-        user_to_insert[1] = ', '.join(user_to_insert[1].split(', ') + [ini_date])
-        tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
-        api_logger.info('Database job: Scrapped date tweets inserted into DB.')
+            ## Update new retrieval date on smi_date_tweets table on DB
+            api_logger.info('Database job: Inserting new scrapped date tweets into DB.')
+            user_to_insert = user.copy()
+            user_to_insert[1] = ', '.join(user_to_insert[1].split(', ') + [ini_date])
+            tpipe.insert_datetweets_into_db(queries_path + 'SMI_insert_date_tweets.sql', tuple(user_to_insert))
+            api_logger.info('Database job: Scrapped date tweets inserted into DB.')
 
-        ## SLEEP n seconds, choose n randomly:
-        sleep_time = random.randint(15, 30)
-        api_logger.info('Sleeping sistem for: ' + str(sleep_time) + ' seconds.')
+            ## SLEEP n seconds, choose n randomly:
+            sleep_time = random.randint(15, 30)
+            api_logger.info('Sleeping sistem for: ' + str(sleep_time) + ' seconds.')
+
+        else:
+
+            api_logger.info('Database job: There are no tweets to insert on DB.')
+            
         time.sleep(sleep_time)
 
     except Exception as error:
