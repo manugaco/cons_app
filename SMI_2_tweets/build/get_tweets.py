@@ -138,12 +138,11 @@ while True:
             api_logger.info('Database job: Scrapped date tweets inserted into DB.')
 
         else:
-
             api_logger.info('Database job: There are no tweets to insert on DB.')
-            
+
         ## SLEEP n seconds, choose n randomly:
         sleep_time = random.randint(15, 30)
-        api_logger.info('Sleeping sistem for: ' + str(sleep_time) + ' seconds.')
+        api_logger.info('Sleeping system for: ' + str(sleep_time) + ' seconds.')
         time.sleep(sleep_time)
 
     except Exception as error:
